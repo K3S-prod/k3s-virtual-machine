@@ -1,0 +1,26 @@
+# mean(Array) -> Num - mean value of an array
+
+_f_mean:
+    getarg 0, r0        # r0 = arg0(Array)
+    sta r0              # ACC = r0
+    lenarr r0           # r0 = Array size
+    
+    ldcnst r1, 0        # sum = 0
+    ldcnst r2, 0        # idx = 0
+    
+loop:
+    # r3 = Array[idx]
+    getarg 0, r3        # r3 = Array
+    sta r3              # ACC = r3
+    getelem r2, r3      # r3 = Array[r2]
+                        #
+    add r1, r3          # ACC = r1(sum) + r3
+    lda r1              # r1 = ACC
+    inc r2              # r2(idx)++
+    sta r0              # ACC = r0(Array size)
+    b.gt r2, loop       # if (ACC > r2(idx)) goto loop
+
+    div r1, r0          # ACC = r1(sum) / r0(Array size)
+    lda r0              # r0 = ACC
+    setret 0, r0
+    ret

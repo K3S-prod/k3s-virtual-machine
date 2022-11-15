@@ -1,0 +1,25 @@
+# fib(N:Num) -> Num - N-th Fibbonaci number
+
+_f_fib:
+    getarg 0, r0        # r0 = N
+    sta r0              # ACC = r0
+    ldconst r0, 1       # r0 = 1
+    b.le r0, epilogue   # if (ACC(N) <= 1) goto trivial
+
+    deca                # ACC--
+    lda r1              # r1 = ACC(N-1)
+    deca                # ACC--
+    lda r2              # r2 = ACC(N-2) 
+    createfunc _f_fib   # ACC = fib:func_obj
+    setarg 0, r1        # ACC(fib).args[0] = r1(N-1)
+    call                # ACC()
+    getret 0, r1        # r1 = ACC.ret[0]
+    setarg 0, r2        # ACC(fib).args[0] = r2(N-2)
+    call                # ACC()
+    getret 0, r2        # r2 = ACC.ret[0]
+    add r1, r2          # ACC = r1 + r2
+    lda r0              # r0 = ACC
+
+epilogue:
+    setret 0, r0
+    ret
