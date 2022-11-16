@@ -1,0 +1,55 @@
+%{
+#include <cstdio>
+#include <assembler.h>
+#define YYDEBUG 1
+extern "C" FILE *yyin;
+extern "C" int yylex (void);
+extern "C" int yyparse (void);
+extern "C" void yyerror(const char *);
+%}
+
+/* declare tokens */
+%token REG
+%token IMM
+<% ISA.opcode_signatures.each do |signature| -%>
+%token <%= signature.upcase + " " %>
+<%- end -%>
+
+%%
+program:    |
+    program instructions;
+
+instructions:
+    instruction instructions |
+    instruction;
+
+
+instruction:
+<% ISA.opcode_signatures.each_with_index do |signature, idx| -%>
+    <%- args = ISA.tokenize_signature(signature) -%>
+    <%= signature.upcase + " " + args["types"].join(" ") -%> {
+        encoder.Encode<8, <%=  args["sizes"].join(", ") %>>(<%=  ISA.numbers(args["types"].length + 1).join(", ") %>);
+    } <%= ((idx != ISA.opcode_signatures.length - 1) ? "|" : ";") %>
+<%- end -%>
+
+%%
+
+int main(int argc, char *argv[])
+{
+    if (argc != 2) {
+        return 1;
+    }
+    auto file = std::fopen(argv[1], "r");
+    if (file == nullptr) {
+        return 2;
+    }
+    yydebug = 0;
+    yyin = file;
+    yyparse();
+    return 0;
+}
+
+void yyerror(char *s)
+{
+  fprintf(stderr, "error: %s\n", s);
+}

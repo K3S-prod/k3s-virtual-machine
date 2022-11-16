@@ -1,0 +1,22 @@
+#ifndef OPCODES_H
+#define OPCODES_H
+
+#include <cstddef>
+
+namespace k3s {
+
+enum class Opcode : size_t {
+<%- ISA.opcode_groups.each do |group_name, group| -%>
+    // <%= group_name %>
+    <%- group.each do |signature| -%>
+        // <%= signature["signature"] %>
+        <%- signature["opc"].each do |opcode| -%>
+        <%= opcode.upcase %>,
+        <%- end -%>
+    <%- end -%>
+<% end %>
+};
+
+}
+
+#endif  // OPCODES_H

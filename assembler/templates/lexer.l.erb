@@ -1,0 +1,48 @@
+%{
+    #include "opcodes.h"
+    #include <cstdlib>
+    #include <cstdio>
+    #include <cassert>
+    #include "grammar.l.hpp"
+
+    extern "C" int yylex (void);
+%}
+
+integ [+-]?[0-9]+
+
+%%
+[#].+$          {}
+[#]$            {}
+
+[ \n]+          {}
+{integ}         {
+                    yylval = atoi(yytext);
+                    //printf("int(%d)\n", yylval);
+                    return IMM;
+                }
+[r]{integ}      {
+                    yylval = atoi(++yytext);
+                    //printf("reg(%d)\n", yylval);
+                    return REG;
+                }
+
+<%- ISA.opcode_groups.each do |group_name, group| -%>
+    <%- group.each do |signature| -%>
+        <%- signature["opc"].each do |opcode| -%>
+            <%- opcode.chars do |char| -%>
+<%= "[" + char + "]" -%>
+            <%- end -%>
+<%=- " {" %>
+    yylval = static_cast<int>(k3s::Opcode::<%= opcode.upcase -%>);
+    return(<%= signature["signature"].upcase -%>);
+<%=- "}" %>
+        <%- end -%>
+    <%- end -%>
+<%- end -%>
+
+[E][O][F] {
+    yylval = 0;
+    printf("EOF(%d)\n", yylval);
+    return EOF;
+}
+%%

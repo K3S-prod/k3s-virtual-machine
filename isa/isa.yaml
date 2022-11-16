@@ -1,0 +1,105 @@
+###
+#   %isa description%
+#
+###
+
+reg:
+    - typename: NUM
+      desc:     Type to represent real and integer values.
+
+    - typename: ARR
+      desc:     Type to represent arrays of elements of any types.
+
+    - typename: STR
+      desc:     Type to represent strings.
+
+    - typename: OBJ
+      desc:     Type to represent objects with named fields. 
+                Each field must have a type and object's layout can't be modified at runtime.
+                Store reg to field of different type is a run-time error.
+
+    - typename: FUNC
+      desc:     Type to represent functions as objects.
+                Registers of such type can be "invoked".
+    
+    - typename: NIL
+      desc:     Empty/undefined value.
+    
+    - typename: ANY
+      desc:     Unspecified type.
+
+signatures:
+  - opc_r4_r4
+  - opc_r8
+  - opc_i8
+
+opcodes:
+    description:
+        Each element of 'groups' should define signature, array of opcodes (mnemonics, related to the 'group') and array of overloads.
+        Each overload should be annotated with pseudo-code and define requirements on inputs and guarantees for outputs.
+      	Signature describes bit-representation of instructions.
+      	Currently, all the opcodes are 8-bit wide and all valid instructions are 16-bit wide.
+    groups:
+        Arithmetic (two-op):
+            - signature: opc_r4_r4
+              opc:
+                - add
+                - sub
+                - div
+                - mul
+              overloads:
+                - in: ri:NUM, rj:NUM
+                  out: acc:NUM
+                  semantics: acc <- ri opc rj;
+                - in: ri:STR, rj:STR
+                  out: acc:STR
+                  semantics: acc <- concat(ri, rj);
+        
+        Arithmetic (single-op):
+            - signature: opc_r8
+              opc:
+                - add2
+                - sub2
+                - div2
+                - mul2
+              overloads:
+                - in:   acc:NUM, ri:NUM
+                  out:  acc:NUM
+                  semantics: acc <- acc opc r0
+                - in:   acc:STR, r0:STR
+                  out:  acc:STR
+                  semantics: acc <- concat(acc, ri)
+                - in:   acc:ARR, ri:NUM
+                  out:  acc:ARR
+                  semantics: foreach idx { acc[idx] <- acc[idx] opc ri }
+
+        Array-specific:
+            - signature: opc_r8
+              opc:
+                - newarr
+              overloads:
+                - in: ri:NUM
+                  out: acc:ARR
+                  semantics: > 
+                       acc <- allocate_array_with_size(ri)
+
+            - signature: opc_r4_r4
+              opc:
+                - setelem
+              overloads:
+                - in: acc:ARR, ri:NUM, rj:ANY
+                  out: acc:ARR
+                  semantics: >
+                       acc[ri] = rj;
+                       acc <- acc;
+
+            - signature: opc_r4_r4
+              opc:
+                - getelem
+              overloads:
+                - in: acc:ARR, ri:NUM, rj:ANY
+                  out: acc:ARR
+                  semantics: >
+                       rj <- acc[ri];
+
+ 
