@@ -1,11 +1,11 @@
-add_custom_target(assembler_gen)
 
 set(ASSEMBLER_BINARY_DIR ${K3S_BINARY_DIR}/assembler)
 set(ASSEMBLER_SOURCE_DIR ${CMAKE_SOURCE_DIR}/assembler)
 set(ISA "${CMAKE_SOURCE_DIR}/isa/isa.yaml")
 set(TEMPLATES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/templates")
 set(GENERATED_DIR "${ASSEMBLER_BINARY_DIR}/generated")
-set(TEMPLATES_GENERATOR "${TEMPLATES_DIR}/isa_parser.rb")
+file(MAKE_DIRECTORY ${GENERATED_DIR})
+set(TEMPLATES_GENERATOR "${CMAKE_SOURCE_DIR}/isa/isa_parser.rb")
 
 set(LEXER "lexer.l")
 set(GRAMMAR "grammar.l")
@@ -18,10 +18,11 @@ add_custom_command(
     DEPENDS ${TEMPLATES_GENERATOR} ${ISA} ${TEMPLATES_LIST} 
     COMMAND ruby ${TEMPLATES_GENERATOR} ${ISA} ${TEMPLATES_LIST} ${TEMPLATES_INSTANTIATED}
 )
+add_custom_target(assembler_gen DEPENDS ${TEMPLATES_INSTANTIATED})
 
 add_custom_command(
     OUTPUT "${GENERATED_DIR}/${LEXER}.cpp" "${GENERATED_DIR}/${GRAMMAR}.cpp" "${GENERATED_DIR}/${GRAMMAR}.hpp"
-    DEPENDS "${GENERATED_DIR}/${LEXER}" "${GENERATED_DIR}/${GRAMMAR}"
+    DEPENDS assembler_gen
     COMMAND flex "-o" "${GENERATED_DIR}/${LEXER}.cpp" "${GENERATED_DIR}/${LEXER}"
     COMMAND bison "-o" "${GENERATED_DIR}/${GRAMMAR}.cpp" -d "${GENERATED_DIR}/${GRAMMAR}"
 )

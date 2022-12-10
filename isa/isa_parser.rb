@@ -41,6 +41,7 @@ end
 
 ISA.init
 
+#TODO: handle arguments properly
 n_templates = 3
 (1..n_templates).each do |i|
     template_erb = ARGV[i]
