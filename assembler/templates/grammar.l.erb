@@ -1,55 +1,65 @@
 %{
 #include <cstdio>
-#include <assembler.h>
+#include <assembler/assembler.h>
+
 #define YYDEBUG 1
+
 extern "C" FILE *yyin;
 extern "C" int yylex (void);
-extern "C" int yyparse (void);
-extern "C" void yyerror(const char *);
+
+extern size_t ASM_LINE_NO;
+
+void yyerror(const char *s)
+{
+    fprintf(stderr, "(line_no:%lu): error: %s\n", ASM_LINE_NO, s);
+}
+
 %}
 
 /* declare tokens */
 %token REG
 %token IMM
+%token SPACE
+%token B_BEGIN
+%token B_END
+
 <% ISA.opcode_signatures.each do |signature| -%>
 %token <%= signature.upcase + " " %>
 <%- end -%>
 
 %%
-program:    |
-    program instructions;
+
+program:
+    function |
+    program function |
+    %empty;
+
+function:
+    B_BEGIN instructions B_END;
 
 instructions:
     instruction instructions |
     instruction;
 
-
 instruction:
 <% ISA.opcode_signatures.each_with_index do |signature, idx| -%>
     <%- args = ISA.tokenize_signature(signature) -%>
-    <%= signature.upcase + " " + args["types"].join(" ") -%> {
-        encoder.Encode<8, <%=  args["sizes"].join(", ") %>>(<%=  ISA.numbers(args["types"].length + 1).join(", ") %>);
+    <%= args["types"].prepend(signature.upcase).join(" ") -%> {
+        k3s::ENCODER.Encode<<%=  args["sizes"].prepend("8").join(", ") %>>(<%=  ISA.GetGrammarArgs(args["types"].length).join(", ") %>);
     } <%= ((idx != ISA.opcode_signatures.length - 1) ? "|" : ";") %>
 <%- end -%>
 
 %%
 
-int main(int argc, char *argv[])
+namespace k3s {
+
+AsmEncoder ENCODER;
+
+int AsmEncoder::Process(FILE *file)
 {
-    if (argc != 2) {
-        return 1;
-    }
-    auto file = std::fopen(argv[1], "r");
-    if (file == nullptr) {
-        return 2;
-    }
     yydebug = 0;
     yyin = file;
-    yyparse();
-    return 0;
+    return yyparse();
 }
 
-void yyerror(char *s)
-{
-  fprintf(stderr, "error: %s\n", s);
-}
+} // namespace k3s
