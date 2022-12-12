@@ -5,6 +5,8 @@ if [ "$EUID" -ne 0 ]; then
   exit
 fi
 
-DEPS="libbison-dev libfl-dev flex bison"
+DEPS="libbison-dev libfl-dev flex bison ruby-full"
 echo "Installing dependencies: $DEPS"
+
+apt update
 apt install $DEPS
