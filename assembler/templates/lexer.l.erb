@@ -1,11 +1,16 @@
 %{
-    #include "opcodes.h"
+    #include "interpreter/generated/opcodes.h"
     #include <cstdlib>
     #include <cstdio>
     #include <cassert>
     #include "grammar.l.hpp"
 
-    extern "C" int yylex (void);
+    size_t ASM_LINE_NO = 1;
+    extern "C" int yylex(void);
+    void UnknownTokenHandle() {
+        printf("(line_no:%lu): Unknown token: %s\n", ASM_LINE_NO, yytext);
+        exit (-1);
+    }
 %}
 
 integ [+-]?[0-9]+
@@ -13,8 +18,12 @@ integ [+-]?[0-9]+
 %%
 [#].+$          {}
 [#]$            {}
+[\n]            { ASM_LINE_NO ++; }
 
-[ \n]+          {}
+[{]            { return B_BEGIN; }
+[}]            { return B_END; }
+
+[ ]+            {}
 {integ}         {
                     yylval = atoi(yytext);
                     //printf("int(%d)\n", yylval);
@@ -27,14 +36,14 @@ integ [+-]?[0-9]+
                 }
 
 <%- ISA.opcode_groups.each do |group_name, group| -%>
-    <%- group.each do |signature| -%>
-        <%- signature["opc"].each do |opcode| -%>
+    <%- group.each do |sub_group| -%>
+        <%- sub_group["opc"].each do |opcode| -%>
             <%- opcode.chars do |char| -%>
 <%= "[" + char + "]" -%>
             <%- end -%>
 <%=- " {" %>
     yylval = static_cast<int>(k3s::Opcode::<%= opcode.upcase -%>);
-    return(<%= signature["signature"].upcase -%>);
+    return(<%= sub_group["signature"].upcase -%>);
 <%=- "}" %>
         <%- end -%>
     <%- end -%>
@@ -45,4 +54,9 @@ integ [+-]?[0-9]+
     printf("EOF(%d)\n", yylval);
     return EOF;
 }
+
+. {
+    UnknownTokenHandle();
+}
+
 %%

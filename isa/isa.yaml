@@ -3,7 +3,7 @@
 #
 ###
 
-reg:
+reg_types:
     - typename: NUM
       desc:     Type to represent real and integer values.
 
@@ -32,6 +32,7 @@ signatures:
   - opc_r4_r4
   - opc_r8
   - opc_i8
+  - opc
 
 opcodes:
     description:
@@ -39,38 +40,75 @@ opcodes:
         Each overload should be annotated with pseudo-code and define requirements on inputs and guarantees for outputs.
       	Signature describes bit-representation of instructions.
       	Currently, all the opcodes are 8-bit wide and all valid instructions are 16-bit wide.
+    opcode_overload_limit:
+        4
     groups:
+        Controlflow:
+            - signature: opc_i8
+              opc:
+                - jump
+              overloads:
+                - in: []
+                  out: []
+                  semantics: > 
+                       pc <- pc + i8
+            - signature: opc
+              opc:
+                - ret
+              overloads:
+                - in: []
+                  out: []
+                  semantics: > 
+                       return
+
         Arithmetic (two-op):
             - signature: opc_r4_r4
               opc:
                 - add
+              overloads:
+                - in: [r:NUM, r:NUM]
+                  out: [acc:NUM]
+                  semantics: acc <- r0 add r1;
+                - in: [r:STR, r:STR]
+                  out: [acc:STR]
+                  semantics: acc <- concat(r0, r1);
+
+            - signature: opc_r4_r4
+              opc:
                 - sub
                 - div
                 - mul
               overloads:
-                - in: ri:NUM, rj:NUM
-                  out: acc:NUM
-                  semantics: acc <- ri opc rj;
-                - in: ri:STR, rj:STR
-                  out: acc:STR
-                  semantics: acc <- concat(ri, rj);
-        
+                - in: [r:NUM, r:NUM]
+                  out: [acc:NUM]
+                  semantics: acc <- r0 opc r1;
+                         
         Arithmetic (single-op):
             - signature: opc_r8
               opc:
                 - add2
+              overloads:
+                - in:   [a:NUM, r:NUM]
+                  out:  [a:NUM]
+                  semantics: acc <- acc opc r0
+                - in:   [a:STR, r:STR]
+                  out:  [a:STR]
+                  semantics: acc <- concat(acc, r0)
+                - in:   [a:ARR, r:NUM]
+                  out:  [a:ARR]
+                  semantics: foreach idx { acc[idx] <- acc[idx] opc ri }
+
+            - signature: opc_r8
+              opc:
                 - sub2
                 - div2
                 - mul2
               overloads:
-                - in:   acc:NUM, ri:NUM
-                  out:  acc:NUM
+                - in:   [a:NUM, r:NUM]
+                  out:  [a:NUM]
                   semantics: acc <- acc opc r0
-                - in:   acc:STR, r0:STR
-                  out:  acc:STR
-                  semantics: acc <- concat(acc, ri)
-                - in:   acc:ARR, ri:NUM
-                  out:  acc:ARR
+                - in:   [a:ARR, r:NUM]
+                  out:  [a:ARR]
                   semantics: foreach idx { acc[idx] <- acc[idx] opc ri }
 
         Array-specific:
@@ -78,8 +116,8 @@ opcodes:
               opc:
                 - newarr
               overloads:
-                - in: ri:NUM
-                  out: acc:ARR
+                - in: [r:NUM]
+                  out: [a:ARR]
                   semantics: > 
                        acc <- allocate_array_with_size(ri)
 
@@ -87,19 +125,19 @@ opcodes:
               opc:
                 - setelem
               overloads:
-                - in: acc:ARR, ri:NUM, rj:ANY
-                  out: acc:ARR
+                - in: [a:ARR, r:NUM, r:ANY]
+                  out: [a:ARR]
                   semantics: >
-                       acc[ri] = rj;
+                       acc[r1] = r2;
                        acc <- acc;
 
             - signature: opc_r4_r4
               opc:
                 - getelem
               overloads:
-                - in: acc:ARR, ri:NUM, rj:ANY
-                  out: acc:ARR
+                - in: [a:ARR, r:NUM, r:ANY]
+                  out: [r:ARR]
                   semantics: >
-                       rj <- acc[ri];
+                       r2 <- acc[r1];
 
  

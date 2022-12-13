@@ -1,11 +1,11 @@
 #ifndef OPCODES_H
 #define OPCODES_H
 
-#include <cstddef>
+#include <cstdint>
 
 namespace k3s {
 
-enum class Opcode : size_t {
+enum class Opcode : uint8_t {
 <%- ISA.opcode_groups.each do |group_name, group| -%>
     // <%= group_name %>
     <%- group.each do |signature| -%>
@@ -17,6 +17,6 @@ enum class Opcode : size_t {
 <% end %>
 };
 
-}
+}  // namespace k3s
 
 #endif  // OPCODES_H
