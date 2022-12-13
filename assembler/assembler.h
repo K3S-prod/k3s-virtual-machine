@@ -60,6 +60,11 @@ public:
         return data_[constant_pool_id];
     }
 
+    const auto &Elements() 
+    {
+        return data_;
+    }
+
 private:
     std::array<Element, CONSTANT_POOL_SIZE> data_;
 };
@@ -67,6 +72,8 @@ private:
 class AsmEncoder {
 public:
     static int Process(FILE *file);
+
+    static void DumpToFile(FILE *file);
 
     template<size_t opc_size, size_t op1_size, size_t op2_size>
     static void Encode(uint8_t opcode, uint8_t op1, uint8_t op2) {

@@ -49,3 +49,4 @@ add_executable(asm
 target_compile_options(assembler PUBLIC -ggdb3)
 target_link_libraries(assembler fl y)
 target_link_libraries(asm assembler)
+target_link_libraries(asm classfile)
