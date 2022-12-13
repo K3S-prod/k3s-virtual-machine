@@ -134,37 +134,37 @@ int Interpreter::Invoke(BytecodeInstruction *program, size_t pc)
     }
 
     ADD2_aARR_rNUM: {
-        printf("ADD2_aARR_rNUM\n");
+        LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
         ADVANCE_FETCH_AND_DISPATCH();
     }
     SUB2_aARR_rNUM: {
-        printf("SUB2_aARR_rNUM\n");
+        LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
         ADVANCE_FETCH_AND_DISPATCH();
     }
     DIV2_aARR_rNUM: {
-        printf("DIV2_aARR_rNUM\n");
+        LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
         ADVANCE_FETCH_AND_DISPATCH();
     }
     MUL2_aARR_rNUM: {
-        printf("MUL2_aARR_rNUM\n");
+        LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
         ADVANCE_FETCH_AND_DISPATCH();
     }
 
     ADD2_aSTR_rSTR: {
-        printf("ADD2_aSTR_rSTR\n");
+        LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
         ADVANCE_FETCH_AND_DISPATCH();
     }
 
     NEWARR_rNUM: {
-        printf("NEWARR_rNUM\n");
+        LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
         ADVANCE_FETCH_AND_DISPATCH();
     }
     SETELEM_aARR_rNUM_rANY: {
-        printf("SETELEM_aARR_rNUM_rANY\n");
+        LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
         ADVANCE_FETCH_AND_DISPATCH();
     }
     GETELEM_aARR_rNUM_rANY: {
-        printf("GETELEM_aARR_rNUM_rANY\n");
+        LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
         ADVANCE_FETCH_AND_DISPATCH();
     }
 
