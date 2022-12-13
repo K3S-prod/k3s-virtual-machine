@@ -16,6 +16,16 @@ public:
         return type_;
     }
 
+    uint64_t GetValue() const 
+    {
+        return value_;
+    }
+
+    void StoreValue(const uint64_t value)
+    {
+        value_ = value;
+    }
+
 private:
     Type type_ {};
     uint64_t value_ {};
