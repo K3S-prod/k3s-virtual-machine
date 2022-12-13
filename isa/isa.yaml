@@ -50,16 +50,46 @@ opcodes:
               overloads:
                 - in: []
                   out: []
-                  semantics: > 
-                       pc <- pc + i8
+                  semantics: pc <- pc + i8
+            - signature: opc
+              opc:
+                - call
+              overloads:
+                - in: [a:FUNC]
+                  out: []
+                  semantics: acc.invoke()
             - signature: opc
               opc:
                 - ret
               overloads:
                 - in: []
                   out: []
+                  semantics: return
+
+        Objects:
+            - signature: opc_i8
+              opc:
+                - ldai
+              overloads:
+                - in: []
+                  out: [a:ANY]
                   semantics: > 
-                       return
+                       acc <- allocobj(CONSTANT_POOL[imm8])
+        DataFlow:
+            - signature: opc_r8
+              opc:
+                - lda
+              overloads:
+                - in: [r:ANY]
+                  out: [a:ANY]
+                  semantics: acc <- reg
+            - signature: opc_r8
+              opc:
+                - sta
+              overloads:
+                - in: [r:ANY]
+                  out: [r:ANY]
+                  semantics: reg <- acc
 
         Arithmetic (two-op):
             - signature: opc_r4_r4
@@ -67,11 +97,11 @@ opcodes:
                 - add
               overloads:
                 - in: [r:NUM, r:NUM]
-                  out: [acc:NUM]
+                  out: [a:NUM]
                   semantics: acc <- r0 add r1;
                 - in: [r:STR, r:STR]
-                  out: [acc:STR]
-                  semantics: acc <- concat(r0, r1);
+                  out: [a:STR]
+                  semantics: a <- concat(r0, r1);
 
             - signature: opc_r4_r4
               opc:
@@ -80,7 +110,7 @@ opcodes:
                 - mul
               overloads:
                 - in: [r:NUM, r:NUM]
-                  out: [acc:NUM]
+                  out: [a:NUM]
                   semantics: acc <- r0 opc r1;
                          
         Arithmetic (single-op):

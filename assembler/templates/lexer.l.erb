@@ -13,6 +13,8 @@
     }
 %}
 
+doubl [0-9]+(\\.[0-9]+)? 
+
 integ [+-]?[0-9]+
 
 %%
@@ -20,14 +22,19 @@ integ [+-]?[0-9]+
 [#]$            {}
 [\n]            { ASM_LINE_NO ++; }
 
-[{]            { return B_BEGIN; }
-[}]            { return B_END; }
+".def"          { return FUNCTION_KEYW; }
+".num"          { return NUM_KEYW; }
+
+[{]             { return B_BEGIN; }
+[}]             { return B_END; }
+
+{doubl}         { return NUM; }
 
 [ ]+            {}
 {integ}         {
                     yylval = atoi(yytext);
                     //printf("int(%d)\n", yylval);
-                    return IMM;
+                    return IMM_LITERAL;
                 }
 [r]{integ}      {
                     yylval = atoi(++yytext);
@@ -54,6 +61,8 @@ integ [+-]?[0-9]+
     printf("EOF(%d)\n", yylval);
     return EOF;
 }
+
+[a-zA-Z_][a-zA-Z0-9_]*  { return IDENTIFIER; }
 
 . {
     UnknownTokenHandle();

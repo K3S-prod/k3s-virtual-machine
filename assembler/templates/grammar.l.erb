@@ -7,19 +7,24 @@
 extern "C" FILE *yyin;
 extern "C" int yylex (void);
 
+extern char *yytext;
 extern size_t ASM_LINE_NO;
 
 void yyerror(const char *s)
 {
-    fprintf(stderr, "(line_no:%lu): error: %s\n", ASM_LINE_NO, s);
+    fprintf(stderr, "(line_no:%lu): error: %s: '%s'\n", ASM_LINE_NO, s, yytext);
 }
 
 %}
 
 /* declare tokens */
 %token REG
-%token IMM
+%token NUM
+%token IMM_LITERAL
 %token SPACE
+%token FUNCTION_KEYW
+%token NUM_KEYW
+%token IDENTIFIER
 %token B_BEGIN
 %token B_END
 
@@ -30,22 +35,32 @@ void yyerror(const char *s)
 %%
 
 program:
-    function |
-    program function |
+    declaration |
+    program declaration |
     %empty;
 
-function:
-    B_BEGIN instructions B_END;
+declaration:
+    function |
+    num;
 
+function:
+    FUNCTION_KEYW IDENTIFIER { k3s::AsmEncoder::DeclareAndDefineFunction(yytext); } B_BEGIN instructions B_END;
+
+num:
+    NUM_KEYW IDENTIFIER { k3s::AsmEncoder::DeclareNum(yytext); } NUM { k3s::AsmEncoder::DefineNum(yytext); }
 instructions:
     instruction instructions |
     instruction;
+
+IMM:
+    IDENTIFIER { $$ = k3s::AsmEncoder::ResolveName(yytext); } |
+    IMM_LITERAL { $$ = $1; };
 
 instruction:
 <% ISA.opcode_signatures.each_with_index do |signature, idx| -%>
     <%- args = ISA.tokenize_signature(signature) -%>
     <%= args["types"].prepend(signature.upcase).join(" ") -%> {
-        k3s::ENCODER.Encode<<%=  args["sizes"].prepend("8").join(", ") %>>(<%=  ISA.GetGrammarArgs(args["types"].length).join(", ") %>);
+        k3s::AsmEncoder::Encode<<%=  args["sizes"].prepend("8").join(", ") %>>(<%=  ISA.GetGrammarArgs(args["types"].length).join(", ") %>);
     } <%= ((idx != ISA.opcode_signatures.length - 1) ? "|" : ";") %>
 <%- end -%>
 

@@ -20,7 +20,7 @@ public:
 
     std::ostream *Dump(std::ostream *out) const
     {
-        *out << "(opcode: " << static_cast<int8_t>(opcode_) << ")\n";
+        *out << "(opcode: " << static_cast<uint64_t>(opcode_) << ")\n";
         return out;
     }
 private:

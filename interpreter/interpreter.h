@@ -3,6 +3,7 @@
 
 #include "bytecode_instruction.h"
 #include "register.h"
+#include "allocator/allocator.h"
 #include <vector>
 #include <array>
 
@@ -13,21 +14,20 @@ namespace k3s {
 
 class Interpreter {
 public:
-    
     // Returns after execution of Opcode::RET with empty call stack
-    int Invoke(BytecodeInstruction *program, size_t pc = 0);
+    int Invoke();
 
     void SetProgram(BytecodeInstruction *program) {
         program_ = program;
     }
 
     void SetPc(size_t pc) {
-        state_.pc_ = pc;
+        pc_ = pc;
     }
 
     const auto &Fetch() const
     {
-        return program_[state_.pc_];
+        return program_[pc_];
     }
 
     using Type = Register::Type;
@@ -55,43 +55,54 @@ public:
 
         auto &acc = GetAcc();
         if (acc.GetType() == acc_type) {
-            return CheckRegsType<reg_types...>(regs_ids...);
+            if constexpr (sizeof...(reg_types) != 0) {
+                return CheckRegsType<reg_types...>(regs_ids...);
+            }
+            return true;
         }
         return false;
     }
 
     const Register &GetReg(size_t id) const
     {
-        return state_.regs_[id];
+        return state_stack_.back().regs_[id];
     }
+    Register &GetReg(size_t id)
+    {
+        return state_stack_.back().regs_[id];
+    }
+
     const Register &GetAcc() const
     {
-        return state_.acc_;
+        return state_stack_.back().acc_;
     }
-    
-    void StoreToAcc(uint64_t value)
+    Register &GetAcc()
     {
-        state_.acc_.StoreValue(value);
+        return state_stack_.back().acc_;
     }
-    auto &GetCallStack()
+    auto &GetStateStack()
     {
-        return state_.callstack_;
+        return state_stack_;
     }
 private:
     struct InterpreterState {
     public:
+        InterpreterState(size_t caller_pc)
+        {
+            caller_pc_ = caller_pc;
+        }
+    public:
         Register acc_ {};
         Register regs_[256] {};
-        size_t pc_ {};
-        Vector<size_t> callstack_ {};
+        size_t caller_pc_ {};
     };
 
 private:
-    InterpreterState state_ {};
+    Allocator alloc_ {};
+    size_t pc_ {};
+    Vector<InterpreterState> state_stack_ {};
     BytecodeInstruction *program_ {};
 };
-
-
 
 }  // namespace k3s 
 
