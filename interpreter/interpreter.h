@@ -68,6 +68,11 @@ public:
     {
         return state_.acc_;
     }
+    
+    void StoreToAcc(uint64_t value)
+    {
+        state_.acc_.StoreValue(value);
+    }
     auto &GetCallStack()
     {
         return state_.callstack_;

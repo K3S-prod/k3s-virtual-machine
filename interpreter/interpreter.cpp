@@ -84,75 +84,87 @@ int Interpreter::Invoke(BytecodeInstruction *program, size_t pc)
     }
 
     ADD_rNUM_rNUM: {
-        printf("ADD_rNUM_rNUM\n");
+        StoreToAcc((*this).GetReg(decoder.GetFirstReg()).GetValue() + (*this).GetReg(decoder.GetSecondReg()).GetValue());
         ADVANCE_FETCH_AND_DISPATCH();
     }
     SUB_rNUM_rNUM: {
-        printf("SUB_rNUM_rNUM\n");
+        StoreToAcc((*this).GetReg(decoder.GetFirstReg()).GetValue() - (*this).GetReg(decoder.GetSecondReg()).GetValue());
         ADVANCE_FETCH_AND_DISPATCH();
     }
     DIV_rNUM_rNUM: {
-        printf("DIV_rNUM_rNUM\n");
+        auto second_reg_value = (*this).GetReg(decoder.GetSecondReg()).GetValue();
+        if (second_reg_value == 0)
+        {
+            throw std::runtime_error("Division by zero detected!");
+        } else {
+            StoreToAcc((*this).GetReg(decoder.GetFirstReg()).GetValue() / second_reg_value);
+        }
         ADVANCE_FETCH_AND_DISPATCH();
     }
     MUL_rNUM_rNUM: {
-        printf("MUL_rNUM_rNUM\n");
+        StoreToAcc((*this).GetReg(decoder.GetFirstReg()).GetValue() * (*this).GetReg(decoder.GetSecondReg()).GetValue());
         ADVANCE_FETCH_AND_DISPATCH();
     }
     ADD_rSTR_rSTR: {
-        printf("ADD_rSTR_rSTR\n");
+        LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
         ADVANCE_FETCH_AND_DISPATCH();
     }
 
     ADD2_aNUM_rNUM: {
-        printf("ADD2_aNUM_rNUM\n");
+        StoreToAcc((*this).GetAcc().GetValue() +  (*this).GetReg(decoder.GetSecondReg()).GetValue());
         ADVANCE_FETCH_AND_DISPATCH();
     }
     SUB2_aNUM_rNUM: {
-        printf("SUB2_aNUM_rNUM\n");
+        StoreToAcc((*this).GetAcc().GetValue() -  (*this).GetReg(decoder.GetSecondReg()).GetValue());
         ADVANCE_FETCH_AND_DISPATCH();
     }
     DIV2_aNUM_rNUM: {
-        printf("DIV2_aNUM_rNUM\n");
+        auto second_reg_value = (*this).GetReg(decoder.GetSecondReg()).GetValue();
+        if (second_reg_value == 0)
+        {
+            throw std::runtime_error("Division by zero detected!");
+        } else {
+            StoreToAcc((*this).GetAcc().GetValue() / second_reg_value);
+        }
         ADVANCE_FETCH_AND_DISPATCH();
     }
     MUL2_aNUM_rNUM: {
-        printf("MUL2_aNUM_rNUM\n");
+        StoreToAcc((*this).GetAcc().GetValue() *  (*this).GetReg(decoder.GetSecondReg()).GetValue());
         ADVANCE_FETCH_AND_DISPATCH();
     }
 
     ADD2_aARR_rNUM: {
-        printf("ADD2_aARR_rNUM\n");
+        LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
         ADVANCE_FETCH_AND_DISPATCH();
     }
     SUB2_aARR_rNUM: {
-        printf("SUB2_aARR_rNUM\n");
+        LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
         ADVANCE_FETCH_AND_DISPATCH();
     }
     DIV2_aARR_rNUM: {
-        printf("DIV2_aARR_rNUM\n");
+        LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
         ADVANCE_FETCH_AND_DISPATCH();
     }
     MUL2_aARR_rNUM: {
-        printf("MUL2_aARR_rNUM\n");
+        LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
         ADVANCE_FETCH_AND_DISPATCH();
     }
 
     ADD2_aSTR_rSTR: {
-        printf("ADD2_aSTR_rSTR\n");
+        LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
         ADVANCE_FETCH_AND_DISPATCH();
     }
 
     NEWARR_rNUM: {
-        printf("NEWARR_rNUM\n");
+        LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
         ADVANCE_FETCH_AND_DISPATCH();
     }
     SETELEM_aARR_rNUM_rANY: {
-        printf("SETELEM_aARR_rNUM_rANY\n");
+        LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
         ADVANCE_FETCH_AND_DISPATCH();
     }
     GETELEM_aARR_rNUM_rANY: {
-        printf("GETELEM_aARR_rNUM_rANY\n");
+        LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
         ADVANCE_FETCH_AND_DISPATCH();
     }
 
