@@ -14,7 +14,10 @@
     add r0 r1
     sub2 r3
     add r5 r5
+    # jump _nocall    # Uncomment me to skip call
     ldai main2
     call
+_nocall:
+
     ret
 }

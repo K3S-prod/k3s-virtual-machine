@@ -26,6 +26,7 @@ integ [+-]?[0-9]+
 ".num"          { return NUM_KEYW; }
 
 [{]             { return B_BEGIN; }
+[:]             { return COLON; }
 [}]             { return B_END; }
 
 {doubl}         { return NUM; }

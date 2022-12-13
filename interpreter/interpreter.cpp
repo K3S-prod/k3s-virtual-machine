@@ -50,13 +50,15 @@ std::ostream &operator<<(std::ostream &os, const BytecodeInstruction &inst)
 
 int Interpreter::Invoke()
 {
-    auto main_id = AsmEncoder::ResolveName("main");
-    auto main_pc = AsmEncoder::GetConstantPool().GetFunctionBytecodeOffset(main_id);
+    auto main_id = AsmEncoder::TryResolveName("main");
+    auto main_offs = AsmEncoder::GetConstantPool().GetFunctionBytecodeOffset(main_id);
     auto &inst_buf = k3s::AsmEncoder::GetInstructionsBuffer();
     SetProgram(inst_buf.data());
-    SetPc(main_pc);
+    SetPc(main_offs);
+    
     InstDecoder decoder;
-    GetStateStack().push_back(-1);
+    auto *main_ptr = alloc_.AllocFunction(main_offs);
+    GetStateStack().emplace_back(-1, main_ptr);
 
 #include "generated/dispatch_table.inl"
 
@@ -68,14 +70,13 @@ int Interpreter::Invoke()
         const auto &elem = AsmEncoder::GetConstantPool().GetElement(decoder.GetImm());
         switch (elem.type_) {
             case Type::FUNC: {
-                void *storage = alloc_.AllocBytes(sizeof(coretypes::Function));
                 size_t bc_offs = AsmEncoder::GetConstantPool().GetFunctionBytecodeOffset(decoder.GetImm());
-                new (storage) coretypes::Function(bc_offs);
-                GetAcc().Set(Type::FUNC, bit_cast<uint64_t>(storage));
+                auto *ptr = alloc_.AllocFunction(bc_offs);
+                GetAcc().Set(Type::FUNC, bit_cast<uint64_t>(ptr));
                 break;
             }
             case Type::NUM: {
-                GetAcc().Set(Type::NUM, elem.val_); 
+                GetAcc().SetNum(bit_cast<double>(elem.val_)); 
                 break;
             }
             default: {
@@ -97,20 +98,31 @@ int Interpreter::Invoke()
         GetReg(decoder.GetFirstReg()).Set(GetAcc());
         ADVANCE_FETCH_AND_DISPATCH();
     }
-
+    MOV_rANY_rANY:
+    {
+        GetReg(decoder.GetSecondReg()).Set(GetReg(decoder.GetFirstReg()));
+        ADVANCE_FETCH_AND_DISPATCH();
+    }
     // Handlers:
     JUMP:
     {
-        printf("JUMP\n");
-
         pc_ += decoder.GetImm();
         ASSERT(decoder.GetImm() != 0);
         FETCH_AND_DISPATCH();
     }
+    
+    BLE_aNUM:
+    {
+        ASSERT(decoder.GetImm() != 0);
+        if (GetAcc().GetAsNum() <= 0.) {
+            pc_ += decoder.GetImm();
+            FETCH_AND_DISPATCH();
+        }
+        ADVANCE_FETCH_AND_DISPATCH();
+    }
 
     RET:
     {
-        printf("RET\n");
         if (GetStateStack().size() == 1) {
             return decoder.GetImm();
         } else {
@@ -123,34 +135,60 @@ int Interpreter::Invoke()
         FETCH_AND_DISPATCH();
     }
 
+    GETARG0_rANY: {
+        size_t reg_id = decoder.GetFirstReg();
+        GetReg(reg_id).Set(GetCallee()->GetArg<0>());
+        ADVANCE_FETCH_AND_DISPATCH();
+    }
+
+    SETARG0_aFUNC_rANY: {
+        auto *func_obj = bit_cast<coretypes::Function *>(GetAcc().GetValue());
+        size_t reg_id = decoder.GetFirstReg();
+        func_obj->SetArg<0>(GetReg(reg_id));
+        ADVANCE_FETCH_AND_DISPATCH();
+    }
+
+    GETRET0_aFUNC_rANY: {
+        auto *func_obj = bit_cast<coretypes::Function *>(GetAcc().GetValue());
+        size_t reg_id = decoder.GetFirstReg();
+        GetReg(reg_id).Set(func_obj->GetRet<0>());
+        ADVANCE_FETCH_AND_DISPATCH();
+    }
+
+    SETRET0_rANY: {
+        size_t reg_id = decoder.GetFirstReg();
+        GetCallee()->SetRet<0>(GetReg(reg_id));
+        ADVANCE_FETCH_AND_DISPATCH();
+    }
+
+
     CALL_aFUNC: {
-        printf("CALL_aFUNC\n");
         // return to the caller frame;
         // stack contains pc of the call instruction:
-        const auto *func_obj = bit_cast<coretypes::Function *>(GetAcc().GetValue()); 
+        auto *func_obj = bit_cast<coretypes::Function *>(GetAcc().GetValue()); 
+        GetStateStack().emplace_back(pc_, func_obj);
         pc_ = func_obj->GetTargetPc();
-        GetStateStack().push_back(pc_);
         FETCH_AND_DISPATCH();
     }
 
     ADD_rNUM_rNUM: {
-        GetAcc().Set(Type::NUM, (GetReg(decoder.GetFirstReg()).GetAsNum() + GetReg(decoder.GetSecondReg()).GetAsNum()));
+        GetAcc().SetNum(GetReg(decoder.GetFirstReg()).GetAsNum() + GetReg(decoder.GetSecondReg()).GetAsNum());
         ADVANCE_FETCH_AND_DISPATCH();
     }
     SUB_rNUM_rNUM: {
-        GetAcc().Set(Type::NUM, (GetReg(decoder.GetFirstReg()).GetAsNum() - GetReg(decoder.GetSecondReg()).GetAsNum()));
+        GetAcc().SetNum(GetReg(decoder.GetFirstReg()).GetAsNum() - GetReg(decoder.GetSecondReg()).GetAsNum());
         ADVANCE_FETCH_AND_DISPATCH();
     }
     DIV_rNUM_rNUM: {
         if (GetReg(decoder.GetSecondReg()).GetAsNum() == 0) {
             LOG_FATAL(RUNTIME_ERROR, "Division by Zero");
         } else {
-            GetAcc().Set(Type::NUM, (GetReg(decoder.GetFirstReg()).GetAsNum() / GetReg(decoder.GetSecondReg()).GetAsNum()));
+            GetAcc().SetNum(GetReg(decoder.GetFirstReg()).GetAsNum() / GetReg(decoder.GetSecondReg()).GetAsNum());
         }
         ADVANCE_FETCH_AND_DISPATCH();
     }
     MUL_rNUM_rNUM: {
-        GetAcc().Set(Type::NUM, (GetReg(decoder.GetFirstReg()).GetAsNum() * GetReg(decoder.GetSecondReg()).GetAsNum()));
+        GetAcc().SetNum(GetReg(decoder.GetFirstReg()).GetAsNum() * GetReg(decoder.GetSecondReg()).GetAsNum());
         ADVANCE_FETCH_AND_DISPATCH();
     }
     ADD_rSTR_rSTR: {
@@ -159,23 +197,23 @@ int Interpreter::Invoke()
     }
 
     ADD2_aNUM_rNUM: {
-        GetAcc().Set(Type::NUM, (GetAcc().GetAsNum() + GetReg(decoder.GetFirstReg()).GetAsNum()));
+        GetAcc().SetNum(GetAcc().GetAsNum() + GetReg(decoder.GetFirstReg()).GetAsNum());
         ADVANCE_FETCH_AND_DISPATCH();
     }
     SUB2_aNUM_rNUM: {
-        GetAcc().Set(Type::NUM, (GetAcc().GetAsNum() - GetReg(decoder.GetFirstReg()).GetAsNum()));
+        GetAcc().SetNum(GetAcc().GetAsNum() - GetReg(decoder.GetFirstReg()).GetAsNum());
         ADVANCE_FETCH_AND_DISPATCH();
     }
     DIV2_aNUM_rNUM: {
         if (GetReg(decoder.GetFirstReg()).GetAsNum() == 0) {
             LOG_FATAL(RUNTIME_ERROR, "Division by Zero");
         } else {
-            GetAcc().Set(Type::NUM, (GetAcc().GetAsNum() / GetReg(decoder.GetFirstReg()).GetAsNum()));
+            GetAcc().SetNum(GetAcc().GetAsNum() / GetReg(decoder.GetFirstReg()).GetAsNum());
         }
         ADVANCE_FETCH_AND_DISPATCH();
     }
     MUL2_aNUM_rNUM: {
-        GetAcc().Set(Type::NUM, (GetAcc().GetAsNum() * GetReg(decoder.GetFirstReg()).GetAsNum()));
+        GetAcc().SetNum(GetAcc().GetAsNum() * GetReg(decoder.GetFirstReg()).GetAsNum());
         ADVANCE_FETCH_AND_DISPATCH();
     }
 
@@ -201,6 +239,11 @@ int Interpreter::Invoke()
         ADVANCE_FETCH_AND_DISPATCH();
     }
 
+    DECA_aNUM: {
+        GetAcc().SetNum(GetAcc().GetAsNum() - 1.);
+        ADVANCE_FETCH_AND_DISPATCH();
+    }
+
     NEWARR_rNUM: {
         LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
         ADVANCE_FETCH_AND_DISPATCH();
@@ -214,11 +257,11 @@ int Interpreter::Invoke()
         ADVANCE_FETCH_AND_DISPATCH();
     }
     DUMP_rANY: {
-        GetReg(decoder.GetFirstReg()).Dump();
+        GetReg(decoder.GetFirstReg()).Dump(decoder.GetFirstReg(), GetStateStack().size() - 1);
         ADVANCE_FETCH_AND_DISPATCH();
     }
-    DUMP_aANY: {
-        GetAcc().Dump();
+    DUMPA_aANY: {
+        GetAcc().DumpAcc(GetStateStack().size() - 1);
         ADVANCE_FETCH_AND_DISPATCH();
     }
 }

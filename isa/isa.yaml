@@ -51,6 +51,13 @@ opcodes:
                 - in: []
                   out: []
                   semantics: pc <- pc + i8
+            - signature: opc_i8
+              opc:
+                - ble
+              overloads:
+                - in: [a:NUM]
+                  out: []
+                  semantics: if (acc < 0) { pc <- pc + i8 }
             - signature: opc
               opc:
                 - call
@@ -90,6 +97,13 @@ opcodes:
                 - in: [r:ANY]
                   out: [r:ANY]
                   semantics: reg <- acc
+            - signature: opc_r4_r4
+              opc:
+                - mov
+              overloads:
+                - in: [r:ANY, r:ANY]
+                  out: [r:ANY]
+                  semantics: reg2 <- reg1
 
         Arithmetic (two-op):
             - signature: opc_r4_r4
@@ -127,7 +141,6 @@ opcodes:
                 - in:   [a:ARR, r:NUM]
                   out:  [a:ARR]
                   semantics: foreach idx { acc[idx] <- acc[idx] opc ri }
-
             - signature: opc_r8
               opc:
                 - sub2
@@ -140,6 +153,15 @@ opcodes:
                 - in:   [a:ARR, r:NUM]
                   out:  [a:ARR]
                   semantics: foreach idx { acc[idx] <- acc[idx] opc ri }
+
+        Arithmetic (zero-op):
+            - signature: opc
+              opc:
+                - deca
+              overloads:
+                - in:   [a:NUM]
+                  out:  [a:NUM]
+                  semantics: acc--
 
         Array-specific:
             - signature: opc_r8
@@ -172,13 +194,37 @@ opcodes:
         Dump:
             - signature: opc_r8
               opc:
-                  - dump
+                - dump
               overloads:
                 - in: [r:ANY]
                   out: []
-                  semantics: >
-                       r1.dump()
+                  semantics: r1.dump()
+            - signature: opc
+              opc:
+                - dumpa
+              overloads:
                 - in: [a:ANY]
                   out: []
+                  semantics: acc.dump()
+
+        Function-specific:
+            - signature: opc_r8
+              opc:
+                - getarg0
+                - setret0
+              overloads:
+                - in: [r:ANY]
+                  out: [r:ANY]
                   semantics: >
-                       acc.dump()
+                    1. reg <- (*this).GetArg<0>();
+                    2. (*this).SetRet<0>(reg);
+            - signature: opc_r8
+              opc:
+                - setarg0
+                - getret0
+              overloads:
+                - in: [a:FUNC, r:ANY]
+                  out: []
+                  semantics: > 
+                    1. acc.GetAsFunction().SetArg<0>(reg)
+                    2. reg <- acc.GetAsFunction().GetRet<0>()

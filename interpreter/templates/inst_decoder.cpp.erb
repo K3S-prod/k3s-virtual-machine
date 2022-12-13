@@ -27,7 +27,7 @@ namespace k3s {
                     <%- when "opc_r8" -%>
                     register_operands_idx_[0] = inst.GetOperands() & FIRST_FAR_REG_MASK;
                     <%- when "opc_i8" -%>
-                    immediate_operand_ = inst.GetOperands() && IMM_MASK;
+                    immediate_operand_ = inst.GetOperands() & IMM_MASK;
                     <%- when "opc" -%>
                     <%- else -%>
                     <%- raise "Invalid signature" -%>

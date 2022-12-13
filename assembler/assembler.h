@@ -123,11 +123,72 @@ public:
         ENCODER.constant_pool_.SetNum(ENCODER.temp_idx_, num);
     }
 
-    static uint8_t ResolveName(const char *c_str)
+    static uint8_t TryResolveName(const char *c_str)
     {
         std::string key(c_str);
-        ASSERT(ENCODER.declared_objects_.find(key) != ENCODER.declared_objects_.end());
-        return ENCODER.declared_objects_[key];
+        if (ENCODER.declared_objects_.find(key) != ENCODER.declared_objects_.end()) {
+            return ENCODER.declared_objects_[key];
+        }
+        
+        // In fact, the inst isn't existing for now:
+        size_t inst_with_pending_label_idx = ENCODER.instructions_buffer_.size();
+        
+        if (ENCODER.declared_labels_.find(key) != ENCODER.declared_labels_.end()) {
+            size_t label_offset = ENCODER.declared_labels_[key];
+            return bit_cast<uint8_t>(GetResolveRelativeOffset(label_offset, inst_with_pending_label_idx));
+        }
+
+        ENCODER.AppendUnresolvedLabels(key, inst_with_pending_label_idx);
+
+        return 0;
+    }
+    
+    static int8_t GetResolveRelativeOffset(size_t label_offset, size_t inst_offset)
+    {
+        auto signed_label_offset = static_cast<ptrdiff_t>(label_offset);
+        auto signed_inst_offset = static_cast<ptrdiff_t>(inst_offset);
+        auto res = static_cast<int8_t>(signed_label_offset - signed_inst_offset);
+        return res;
+    }
+
+    void AppendUnresolvedLabels(const std::string &label_identifier, size_t inst_with_unresolved_label_idx)
+    {
+        unresolved_labels_[label_identifier].push_back(inst_with_unresolved_label_idx);
+    }
+    
+    static void DefineLabel(const char *label_identifier_c_str)
+    {
+        std::string label_identifier(label_identifier_c_str);
+        size_t label_offset = ENCODER.instructions_buffer_.size();
+        if (ENCODER.declared_labels_.find(label_identifier) != ENCODER.declared_labels_.end()) {
+            LOG_FATAL(ENCODER, "Label '" << label_identifier << "' redeclaration (inst_buffer_offset = " << ENCODER.declared_labels_[label_identifier] << ")");
+        }
+        
+        ENCODER.declared_labels_[label_identifier] = label_offset;
+        
+        ENCODER.ResolveUnresolved(label_identifier);
+    }
+
+    void ResolveUnresolved(const std::string &label_identifier)
+    {
+        ASSERT(declared_labels_.find(label_identifier) != declared_labels_.end());
+        size_t label_offset = declared_labels_[label_identifier];
+    
+        if (unresolved_labels_.find(label_identifier) != unresolved_labels_.end()) {
+            for (auto inst_idx : unresolved_labels_[label_identifier]) {
+                int8_t resolved_relative_offset = GetResolveRelativeOffset(label_offset, inst_idx);
+                instructions_buffer_[inst_idx].SetOperands(bit_cast<uint8_t>(resolved_relative_offset));
+            }
+        }
+
+        unresolved_labels_.erase(label_identifier);
+    }
+
+    static void CheckLabelsResolved()
+    {
+        if (ENCODER.unresolved_labels_.size() != 0) {
+            LOG_FATAL(ENCODER, "There are " << ENCODER.unresolved_labels_.size() << " unresolved labels!");
+        }
     }
 
     static ConstantPool &GetConstantPool()
@@ -138,6 +199,8 @@ public:
 private:
     Vector<BytecodeInstruction> instructions_buffer_ {};
     Hash<std::string, uint8_t> declared_objects_ {};
+    Hash<std::string, size_t> declared_labels_ {};
+    Hash<std::string, Vector<size_t>> unresolved_labels_ {};
     ConstantPool constant_pool_ {};
 
     uint8_t temp_idx_ {};

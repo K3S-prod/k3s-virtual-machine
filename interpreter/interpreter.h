@@ -39,7 +39,7 @@ public:
 
         const auto &reg = GetReg(reg_id);
         if constexpr (sizeof...(reg_types) != 0) {
-            if (reg.GetType() == reg_type) {
+            if ((reg_type == Type::ANY) || (reg.GetType() == reg_type)){
                 return CheckRegsType<reg_types...>(regs_ids...);
             }
         } else {
@@ -54,7 +54,7 @@ public:
         static_assert(sizeof...(reg_types) == (sizeof...(RegsIds)));
 
         auto &acc = GetAcc();
-        if (acc.GetType() == acc_type) {
+        if ((acc_type == Type::ANY) || (acc.GetType() == acc_type)) {
             if constexpr (sizeof...(reg_types) != 0) {
                 return CheckRegsType<reg_types...>(regs_ids...);
             }
@@ -80,6 +80,10 @@ public:
     {
         return state_stack_.back().acc_;
     }
+    coretypes::Function *GetCallee()
+    {
+        return state_stack_.back().callee_;
+    }
     auto &GetStateStack()
     {
         return state_stack_;
@@ -87,14 +91,17 @@ public:
 private:
     struct InterpreterState {
     public:
-        InterpreterState(size_t caller_pc)
+        InterpreterState(size_t caller_pc, coretypes::Function *callee_obj)
         {
             caller_pc_ = caller_pc;
+            callee_ = callee_obj;
         }
     public:
         Register acc_ {};
         Register regs_[256] {};
         size_t caller_pc_ {};
+        // This is used for implicit this inside functions:
+        coretypes::Function *callee_ = nullptr;
     };
 
 private:
