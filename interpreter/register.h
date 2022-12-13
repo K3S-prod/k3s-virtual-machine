@@ -32,6 +32,11 @@ public:
         value_ = reg.value_;
     }
 
+    void Dump() {
+        std::cout << "Reg type: " << static_cast<int>(type_) << std::endl 
+                  << "Reg value: " << value_ << std::endl;
+    }
+
     double GetAsNum() const {
         return bit_cast<double>(value_);
     }

@@ -213,6 +213,14 @@ int Interpreter::Invoke()
         LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
         ADVANCE_FETCH_AND_DISPATCH();
     }
+    DUMP_rANY: {
+        GetReg(decoder.GetFirstReg()).Dump();
+        ADVANCE_FETCH_AND_DISPATCH();
+    }
+    DUMP_aANY: {
+        GetAcc().Dump();
+        ADVANCE_FETCH_AND_DISPATCH();
+    }
 }
 
 #undef FETCH_AND_DISPATCH

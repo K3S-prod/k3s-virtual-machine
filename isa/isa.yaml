@@ -169,5 +169,16 @@ opcodes:
                   out: [r:ARR]
                   semantics: >
                        r2 <- acc[r1];
-
- 
+        Dump:
+            - signature: opc_r8
+              opc:
+                  - dump
+              overloads:
+                - in: [r:ANY]
+                  out: []
+                  semantics: >
+                       r1.dump()
+                - in: [a:ANY]
+                  out: []
+                  semantics: >
+                       acc.dump()
