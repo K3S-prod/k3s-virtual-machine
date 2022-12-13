@@ -2,12 +2,13 @@
 #define INTERPRETER_REGISTER
 
 #include <cstdint>
+#include "common/macro.h"
 
 namespace k3s {
 
 class Register {
 public:
-#include "generated/reg_types.inl"
+#include "interpreter/generated/reg_types.inl"
     Register() = default;
     Register(Type type, uint64_t value): type_(type), value_(value) {}
 
@@ -16,14 +17,23 @@ public:
         return type_;
     }
 
-    uint64_t GetValue() const 
+    uint64_t GetValue() const
     {
         return value_;
     }
 
-    void StoreValue(const uint64_t value)
-    {
-        value_ = value;
+    void Set(Type type, uint64_t val) {
+        type_ = type;
+        value_ = val;
+    }
+    
+    void Set(const Register &reg) {
+        type_ = reg.type_;
+        value_ = reg.value_;
+    }
+
+    double GetAsNum() const {
+        return bit_cast<double>(value_);
     }
 
 private:
