@@ -13,17 +13,20 @@ int main(int argc, char *argv[])
         return 2;
     }
 
-    if (k3s::AsmEncoder::Process(file) != 0) {
-        LOG_FATAL(INTERPRETER, "Parsing failed");
+    k3s::Interpreter interp {};
+    
+    if (interp.LoadClassFile(file) != 0) {
+        LOG_FATAL(INTERPRETER, "Loading failed");
     }
 
-    k3s::Interpreter interp {};
     interp.Invoke();
 
     return 0;
 }
 
 namespace k3s {
+
+AsmEncoder ENCODER;
 
 std::ostream &operator<<(std::ostream &os, const BytecodeInstruction &inst)
 {
@@ -47,17 +50,32 @@ std::ostream &operator<<(std::ostream &os, const BytecodeInstruction &inst)
     goto *DISPATCH_TABLE[dispatch_idx];                             \
 }
 
+int Interpreter::LoadClassFile(FILE *fileptr) {
+    ClassFileHeader header;
+    int err_code = 0;
+    err_code = ClassFile::LoadHeader(fileptr, &header);
+    if (err_code != 0) {
+        return err_code;
+    }
+    SetPc(header.entry_point);
+    err_code = ClassFile::LoadCodeSection(fileptr, header, &instructions_buffer_);
+    if (err_code != 0) {
+        return err_code;
+    }
+    SetProgram(instructions_buffer_.data());
+    ASSERT(std::ftell(fileptr) == header.table_offset && "Data offset mismatch");
+    err_code = ClassFile::LoadConstantPool(fileptr, &constant_pool_);
+    if (err_code != 0) {
+        return err_code;
+    }
+    return 0;
+}
 
 int Interpreter::Invoke()
 {
-    auto main_id = AsmEncoder::TryResolveName("main");
-    auto main_offs = AsmEncoder::GetConstantPool().GetFunctionBytecodeOffset(main_id);
-    auto &inst_buf = k3s::AsmEncoder::GetInstructionsBuffer();
-    SetProgram(inst_buf.data());
-    SetPc(main_offs);
-    
+    auto &inst_buf = instructions_buffer_;
     InstDecoder decoder;
-    auto *main_ptr = alloc_.AllocFunction(main_offs);
+    auto *main_ptr = alloc_.AllocFunction(pc_);
     GetStateStack().emplace_back(-1, main_ptr);
 
 #include "generated/dispatch_table.inl"
@@ -67,10 +85,10 @@ int Interpreter::Invoke()
 
     LDAI:
     {
-        const auto &elem = AsmEncoder::GetConstantPool().GetElement(decoder.GetImm());
+        const auto &elem = GetConstantPool().GetElement(decoder.GetImm());
         switch (elem.type_) {
             case Type::FUNC: {
-                size_t bc_offs = AsmEncoder::GetConstantPool().GetFunctionBytecodeOffset(decoder.GetImm());
+                size_t bc_offs = GetConstantPool().GetFunctionBytecodeOffset(decoder.GetImm());
                 auto *ptr = alloc_.AllocFunction(bc_offs);
                 GetAcc().Set(Type::FUNC, bit_cast<uint64_t>(ptr));
                 break;

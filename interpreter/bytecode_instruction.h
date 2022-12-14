@@ -8,6 +8,7 @@ namespace k3s {
 
 class BytecodeInstruction {
 public:
+    BytecodeInstruction() : BytecodeInstruction(0, 0) {}
     BytecodeInstruction(uint8_t opcode, uint8_t operands)
     : opcode_(static_cast<k3s::Opcode>(opcode)), operands_(operands) {}
 
