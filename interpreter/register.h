@@ -59,7 +59,7 @@ public:
         for (size_t i = 0; i < recursion_level; i++) {
             std::cout << "-";
         }
-        std::cout << "Reg[" << reg_id << "] : { type_:" << static_cast<int>(type_) << ", ";
+        std::cout << "Reg[" << reg_id << "] : { type_: " << TypeToStr() << ", ";
         switch (type_) {
         case Type::NUM:
             std::cout << "val_: " << bit_cast<double>(value_) << "}" << std::endl;
