@@ -4,3 +4,16 @@ enum class Type : uint8_t {
     <%= type["typename"] %>,
 <% end %>
 };
+
+std::string TypeToStr() {
+    switch(type_) {
+<%- ISA.reg_types.each do |type| -%>
+        case Type::<%= type["typename"] %> : {
+            return std::string("<%= type["typename"] %>");
+        }
+<% end %>
+        default: {
+            LOG_FATAL(INTERPRETER, "Unknown type in Dump()");
+        }
+    }
+}
