@@ -2,6 +2,7 @@
 #define ALLOCATOR_ALLOCATOR_H
 
 #include "interpreter/register.h"
+#include "interpreter/types/coretypes.h"
 #include <vector>
 #include <cstdint>
 #include <new>
@@ -22,6 +23,12 @@ public:
     {
         storage_.emplace_back(n_bytes);
         return storage_.back().data();
+    }
+    
+    coretypes::Function *AllocFunction(size_t bc_offs)
+    {
+        void *ptr = AllocBytes(sizeof(coretypes::Function));
+        return new (ptr) coretypes::Function(bc_offs);
     }
 private:
     std::vector<std::vector<uint8_t>> storage_ {};

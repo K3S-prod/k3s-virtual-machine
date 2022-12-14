@@ -22,9 +22,15 @@ public:
         return value_;
     }
 
-    void Set(Type type, uint64_t val) {
+    void Set(Type type, uint64_t val)
+    {
+        ASSERT(type != Type::NUM && "Num should be set via SetNum");
         type_ = type;
         value_ = val;
+    }
+    void SetNum(double val) {
+        type_ = Type::NUM;
+        value_ = bit_cast<uint64_t>(val);
     }
     
     void Set(const Register &reg) {
@@ -32,9 +38,36 @@ public:
         value_ = reg.value_;
     }
 
-    void Dump() {
-        std::cout << "Reg type: " << static_cast<int>(type_) << std::endl 
-                  << "Reg value: " << value_ << std::endl;
+    void DumpAcc(size_t recursion_level = 0)
+    {
+        for (size_t i = 0; i < recursion_level; i++) {
+            std::cout << "-";
+        }
+        std::cout << "Acc : { type_: " << static_cast<int>(type_) << ", ";
+        switch (type_) {
+        case Type::NUM:
+            std::cout << "val_: " << bit_cast<double>(value_) << "}" << std::endl;
+            break;        
+        default:
+            std::cout << "val_: " << value_ << "}" << std::endl;
+            break;
+        }
+    }
+
+    void Dump(size_t reg_id, size_t recursion_level = 0)
+    {
+        for (size_t i = 0; i < recursion_level; i++) {
+            std::cout << "-";
+        }
+        std::cout << "Reg[" << reg_id << "] : { type_:" << static_cast<int>(type_) << ", ";
+        switch (type_) {
+        case Type::NUM:
+            std::cout << "val_: " << bit_cast<double>(value_) << "}" << std::endl;
+            break;        
+        default:
+            std::cout << "val_: " << value_ << "}" << std::endl;
+            break;
+        }
     }
 
     double GetAsNum() const {

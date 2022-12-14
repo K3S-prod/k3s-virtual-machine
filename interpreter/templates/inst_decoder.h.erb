@@ -48,7 +48,7 @@ public:
     Opcode Decode(const BytecodeInstruction &inst);
 private:
     size_t register_operands_idx_[2];
-    Immediate immediate_operand_;
+    uint8_t immediate_operand_;
 };
 
 }

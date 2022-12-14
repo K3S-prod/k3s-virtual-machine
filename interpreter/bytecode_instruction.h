@@ -18,6 +18,10 @@ public:
         return operands_;
     }
 
+    void SetOperands(uint8_t operands) {
+        operands_ = operands;
+    }
+
     std::ostream *Dump(std::ostream *out) const
     {
         *out << "(opcode: " << static_cast<uint64_t>(opcode_) << ")\n";

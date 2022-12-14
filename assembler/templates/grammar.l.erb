@@ -26,6 +26,7 @@ void yyerror(const char *s)
 %token NUM_KEYW
 %token IDENTIFIER
 %token B_BEGIN
+%token COLON
 %token B_END
 
 <% ISA.opcode_signatures.each do |signature| -%>
@@ -44,17 +45,24 @@ declaration:
     num;
 
 function:
-    FUNCTION_KEYW IDENTIFIER { k3s::AsmEncoder::DeclareAndDefineFunction(yytext); } B_BEGIN instructions B_END;
+    FUNCTION_KEYW IDENTIFIER { k3s::AsmEncoder::DeclareAndDefineFunction(yytext); } B_BEGIN instructions B_END { k3s::AsmEncoder::CheckLabelsResolved(); };
 
 num:
     NUM_KEYW IDENTIFIER { k3s::AsmEncoder::DeclareNum(yytext); } NUM { k3s::AsmEncoder::DefineNum(yytext); }
 instructions:
-    instruction instructions |
-    instruction;
+    instruction_or_label instructions |
+    instruction_or_label;
 
 IMM:
-    IDENTIFIER { $$ = k3s::AsmEncoder::ResolveName(yytext); } |
+    IDENTIFIER { $$ = k3s::AsmEncoder::TryResolveName(yytext); } |
     IMM_LITERAL { $$ = $1; };
+
+instruction_or_label:
+    instruction |
+    label;
+
+label:
+    IDENTIFIER { k3s::AsmEncoder::DefineLabel(yytext); } COLON;
 
 instruction:
 <% ISA.opcode_signatures.each_with_index do |signature, idx| -%>
