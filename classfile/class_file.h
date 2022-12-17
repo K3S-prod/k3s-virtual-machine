@@ -84,8 +84,8 @@ struct ClassFileHeader
 /// Record : NumRecord | FuncRecord
 /// Recrod structure desribed below
 class ClassFile {
-    Vector<char> file_buffer{0};
-    size_t buf_pos;
+    Vector<char> file_buffer_;
+    size_t buf_pos_;
 public:
     struct MetaRecord {
         Register::Type type;    // following record type
@@ -100,20 +100,19 @@ public:
     };
     /// Write classfile to \p fileptr
     void DumpClassFile(FILE *fileptr);
-    /// TODO make LoadClassFile();
+    /// Load classfile from \p fileptr
+    static int LoadClassFile(FILE *fileptr, ClassFileHeader *header,
+                            Vector<BytecodeInstruction> *instructions_buffer,
+                            ConstantPool *const_pool);
 
-    /// Interfaces for loading classfile. Note that they rely
-    /// on being called one by one with same file descriptor.
-    /// TODO : make fileptr class field and manage it internally
-
+private:
     /// Loads classfile to \p header header from \p fileptr
     static int LoadHeader(FILE *fileptr, ClassFileHeader *header);
     /// Loads code section to \p instructions_buffer_ from \p fileptr
     static int LoadCodeSection(FILE *fileptr, const ClassFileHeader &header,
-                        Vector<BytecodeInstruction> *instructions_buffer_);
+                        Vector<BytecodeInstruction> *instructions_buffer);
     /// Loads constant pool to \p constant_pool from \p fileptr
     static int LoadConstantPool(FILE *fileptr, ConstantPool *constant_pool);
-private:
     static size_t EstimateEncodingSize(const ConstantPool::Element &element);
     void AllocateBuffer();
     /// Interfaces foe writing classfile parts to file

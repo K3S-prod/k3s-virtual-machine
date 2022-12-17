@@ -1,6 +1,5 @@
 #include "interpreter.h"
 #include "generated/inst_decoder.h"
-#include "assembler/assembler.h"
 #include "types/coretypes.h"
 
 int main(int argc, char *argv[])
@@ -26,8 +25,6 @@ int main(int argc, char *argv[])
 
 namespace k3s {
 
-AsmEncoder ENCODER;
-
 std::ostream &operator<<(std::ostream &os, const BytecodeInstruction &inst)
 {
     return *inst.Dump(&os);
@@ -52,22 +49,13 @@ std::ostream &operator<<(std::ostream &os, const BytecodeInstruction &inst)
 
 int Interpreter::LoadClassFile(FILE *fileptr) {
     ClassFileHeader header;
-    int err_code = 0;
-    err_code = ClassFile::LoadHeader(fileptr, &header);
+    int err_code = ClassFile::LoadClassFile(fileptr, &header, 
+                                        &instructions_buffer_, &constant_pool_);
     if (err_code != 0) {
         return err_code;
     }
     SetPc(header.entry_point);
-    err_code = ClassFile::LoadCodeSection(fileptr, header, &instructions_buffer_);
-    if (err_code != 0) {
-        return err_code;
-    }
     SetProgram(instructions_buffer_.data());
-    ASSERT(std::ftell(fileptr) == header.table_offset && "Data offset mismatch");
-    err_code = ClassFile::LoadConstantPool(fileptr, &constant_pool_);
-    if (err_code != 0) {
-        return err_code;
-    }
     return 0;
 }
 

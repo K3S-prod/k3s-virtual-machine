@@ -14,8 +14,8 @@ void ClassFile::AllocateBuffer()
     for (auto pool_element : ENCODER.GetConstantPool().Elements()) {
         file_size += EstimateEncodingSize(pool_element);
     }
-    file_buffer.resize(file_size);
-    buf_pos = 0;
+    file_buffer_.resize(file_size);
+    buf_pos_ = 0;
 }
 
 void ClassFile::WriteHeader() 
@@ -30,7 +30,7 @@ void ClassFile::WriteHeader()
         header.code_offset +
         ENCODER.GetInstructionsBuffer().size() * sizeof(BytecodeInstruction);
     write_buf(reinterpret_cast<char *>(&header), header_size);
-    ASSERT(buf_pos == header_size && "Trash header write");
+    ASSERT(buf_pos_ == header_size && "Trash header write");
 }
 
 void ClassFile::WriteCodeSection() 
@@ -53,12 +53,12 @@ void ClassFile::DumpClassFile(FILE *fileptr)
     ASSERT(fileptr);
     AllocateBuffer();
     WriteHeader();
-    ASSERT(buf_pos < file_buffer.size() && "Invalid header write");
+    ASSERT(buf_pos_ < file_buffer_.size() && "Invalid header write");
     WriteCodeSection();
-    ASSERT(buf_pos < file_buffer.size() && "Invalid code write");
+    ASSERT(buf_pos_ < file_buffer_.size() && "Invalid code write");
     WriteConstantPool();
-    ASSERT(buf_pos <= file_buffer.size() && "Invalid table write");
-    std::fwrite(file_buffer.data(), sizeof(file_buffer[0]), file_buffer.size(), fileptr);
+    ASSERT(buf_pos_ <= file_buffer_.size() && "Invalid table write");
+    std::fwrite(file_buffer_.data(), sizeof(file_buffer_[0]), file_buffer_.size(), fileptr);
 }
 
 size_t ClassFile::EstimateEncodingSize(const ConstantPool::Element &element) 
@@ -111,9 +111,30 @@ void ClassFile::WriteObj(const ConstantPool::Element &element, int8_t pool_id)
 void ClassFile::write_buf(char *src, size_t nbytes) 
 {
     ASSERT(src && "Invalid pointer");
-    char *buf_ptr = file_buffer.data() + buf_pos;
+    char *buf_ptr = file_buffer_.data() + buf_pos_;
     std::memcpy(buf_ptr, src, nbytes);
-    buf_pos += nbytes;
+    buf_pos_ += nbytes;
+}
+
+int ClassFile::LoadClassFile(FILE *fileptr, ClassFileHeader *header,
+                            Vector<BytecodeInstruction> *instr_buffer,
+                            ConstantPool *const_pool) 
+{
+    int err_code = 0;
+    err_code = ClassFile::LoadHeader(fileptr, header);
+    if (err_code != 0) {
+        return err_code;
+    }
+    err_code = ClassFile::LoadCodeSection(fileptr, *header, instr_buffer);
+    if (err_code != 0) {
+        return err_code;
+    }
+    ASSERT(std::ftell(fileptr) == header->table_offset && "Data offset mismatch");
+    err_code = ClassFile::LoadConstantPool(fileptr, const_pool);
+    if (err_code != 0) {
+        return err_code;
+    }
+    return 0;
 }
 
 int ClassFile::LoadHeader(FILE *fileptr, ClassFileHeader *header) 

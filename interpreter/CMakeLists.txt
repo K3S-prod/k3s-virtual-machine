@@ -39,7 +39,6 @@ add_executable(interpreter
 add_dependencies(interpreter interpreter_gen)
 
 target_compile_options(interpreter PUBLIC -ggdb3)
-target_link_libraries(interpreter assembler)
 target_link_libraries(interpreter classfile)
 target_include_directories(interpreter PUBLIC ${INTERPRETER_BINARY_DIR})
 target_include_directories(interpreter PUBLIC ${INTERPRETER_SOURCE_DIR})
