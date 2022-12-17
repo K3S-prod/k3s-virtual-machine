@@ -85,8 +85,7 @@ void ClassFile::WriteObj(const ConstantPool::Element &element, int8_t pool_id)
 {
     size_t obj_size = 0;
     MetaRecord meta = {
-        .type = element.type_, 
-        .size = EstimateEncodingSize(element) - sizeof(MetaRecord)
+        .type = element.type_
     };
     if (element.type_ == Register::Type::ANY) {
         return;
@@ -95,7 +94,6 @@ void ClassFile::WriteObj(const ConstantPool::Element &element, int8_t pool_id)
     switch (element.type_) {
         case Register::Type::FUNC: {
             FuncRecord record = { .bc_offset = element.val_, .id = pool_id };
-            ASSERT(sizeof(record) == meta.size);
             write_buf(reinterpret_cast<char *>(&record), sizeof(record));
             break;
         }
@@ -147,15 +145,16 @@ int ClassFile::LoadConstantPool(FILE *fileptr, ConstantPool *constant_pool)
     std::fseek(fileptr, 0, SEEK_END);
     size_t end_pos = std::ftell(fileptr);
     std::fseek(fileptr, cur_pos, SEEK_SET);
-    size_t data_size = end_pos - cur_pos + 1;
+    size_t data_size = end_pos - cur_pos;
     Vector<char> buffer(data_size);
     std::fread(buffer.data(), sizeof(buffer[0]), data_size, fileptr);
     for (size_t pos = 0; pos < buffer.size(); ) {
-        MetaRecord meta = *((MetaRecord *)buffer.data());
+        MetaRecord meta;
+        std::memcpy(&meta, &buffer[pos], sizeof(meta));
+        pos += sizeof(meta);
         switch (meta.type) {
         case Register::Type::FUNC: {
             FuncRecord record;
-            ASSERT(sizeof(record) == meta.size && "Invalid metadata");
             std::memcpy(&record, &buffer[pos], sizeof(record));
             pos += sizeof(record);
             constant_pool->SetFunction(record.id, record.bc_offset);
@@ -163,15 +162,14 @@ int ClassFile::LoadConstantPool(FILE *fileptr, ConstantPool *constant_pool)
         }
         case Register::Type::NUM: {
             NumRecord record;
-            ASSERT(sizeof(record) == meta.size && "Invalid metadata");
             std::memcpy(&record, &buffer[pos], sizeof(record));
             pos += sizeof(record);
             constant_pool->SetNum(record.id, record.value);
             break;
         }
         default:
-            pos += meta.size;
-            std::cerr << "Warning: trying to load unsupported type\n";
+            std::cerr << "Unreachable executed: trying to load unsupported type\n";
+            std::exit(EXIT_FAILURE);
             break;
         }
     }

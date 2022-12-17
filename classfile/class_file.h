@@ -70,18 +70,25 @@ private:
 
 struct ClassFileHeader 
 {
-  uint64_t code_offset;
-  uint64_t table_offset;
-  uint64_t entry_point;
+  uint64_t code_offset;     // File offset in bytes to start of bytecode instructions
+  uint64_t table_offset;    // File offset in bytes to start of constant pool
+  uint64_t entry_point;     // Bytecode offset of main function
 };
 
+/// Class representing classfile format. 
+/// File format grammar: 
+/// File : Header Code ConstPool
+/// Header : ClassFileHeader
+/// Code : BytecodeInstructions*
+/// ConstPool : (MetaRecord Record)*
+/// Record : NumRecord | FuncRecord
+/// Recrod structure desribed below
 class ClassFile {
     Vector<char> file_buffer{0};
     size_t buf_pos;
 public:
     struct MetaRecord {
         Register::Type type;    // following record type
-        size_t size;            // following record size
     };
     struct FuncRecord {
         size_t bc_offset;
@@ -91,14 +98,25 @@ public:
         double value;
         int8_t id;
     };
+    /// Write classfile to \p fileptr
     void DumpClassFile(FILE *fileptr);
-    static size_t EstimateEncodingSize(const ConstantPool::Element &element);
+    /// TODO make LoadClassFile();
+
+    /// Interfaces for loading classfile. Note that they rely
+    /// on being called one by one with same file descriptor.
+    /// TODO : make fileptr class field and manage it internally
+
+    /// Loads classfile to \p header header from \p fileptr
     static int LoadHeader(FILE *fileptr, ClassFileHeader *header);
+    /// Loads code section to \p instructions_buffer_ from \p fileptr
     static int LoadCodeSection(FILE *fileptr, const ClassFileHeader &header,
                         Vector<BytecodeInstruction> *instructions_buffer_);
+    /// Loads constant pool to \p constant_pool from \p fileptr
     static int LoadConstantPool(FILE *fileptr, ConstantPool *constant_pool);
 private:
+    static size_t EstimateEncodingSize(const ConstantPool::Element &element);
     void AllocateBuffer();
+    /// Interfaces foe writing classfile parts to file
     void WriteHeader();
     void WriteCodeSection();
     void WriteConstantPool();
