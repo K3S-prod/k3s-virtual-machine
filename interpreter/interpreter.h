@@ -4,6 +4,7 @@
 #include "bytecode_instruction.h"
 #include "register.h"
 #include "allocator/allocator.h"
+#include "classfile/class_file.h"
 #include <vector>
 #include <array>
 
@@ -16,6 +17,8 @@ class Interpreter {
 public:
     // Returns after execution of Opcode::RET with empty call stack
     int Invoke();
+
+    int LoadClassFile(FILE *fileptr);
 
     void SetProgram(BytecodeInstruction *program) {
         program_ = program;
@@ -88,6 +91,10 @@ public:
     {
         return state_stack_;
     }
+    auto &GetConstantPool()
+    {
+        return constant_pool_;
+    }
 private:
     struct InterpreterState {
     public:
@@ -108,7 +115,9 @@ private:
     Allocator alloc_ {};
     size_t pc_ {};
     Vector<InterpreterState> state_stack_ {};
+    Vector<BytecodeInstruction> instructions_buffer_{};
     BytecodeInstruction *program_ {};
+    ConstantPool constant_pool_{};
 };
 
 }  // namespace k3s 
