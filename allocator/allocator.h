@@ -30,6 +30,11 @@ public:
         void *ptr = AllocBytes(sizeof(coretypes::Function));
         return new (ptr) coretypes::Function(bc_offs);
     }
+    coretypes::Array *AllocArray(size_t size)
+    {
+        void *ptr = AllocBytes(sizeof(coretypes::Array));
+        return new (ptr) coretypes::Array(size);
+    }
 private:
     std::vector<std::vector<uint8_t>> storage_ {};
 };

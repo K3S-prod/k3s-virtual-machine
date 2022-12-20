@@ -251,15 +251,19 @@ int Interpreter::Invoke()
     }
 
     NEWARR_rNUM: {
-        LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
+        size_t reg_id = decoder.GetFirstReg();
+        size_t arr_sz = static_cast<size_t>(GetReg(reg_id).GetAsNum());
+        GetAcc().SetArray(alloc_.AllocArray(arr_sz));
         ADVANCE_FETCH_AND_DISPATCH();
     }
     SETELEM_aARR_rNUM_rANY: {
-        LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
+        size_t idx = static_cast<size_t>(GetReg(decoder.GetFirstReg()).GetAsNum());
+        GetAcc().GetAsArray()->SetElem(idx, GetReg(decoder.GetSecondReg()));
         ADVANCE_FETCH_AND_DISPATCH();
     }
     GETELEM_aARR_rNUM_rANY: {
-        LOG_FATAL(INTERPERTER, "opc overload is unimplemented");
+        size_t idx = static_cast<size_t>(GetReg(decoder.GetFirstReg()).GetAsNum());
+        GetReg(decoder.GetSecondReg()).Set(GetAcc().GetAsArray()->GetElem(idx));
         ADVANCE_FETCH_AND_DISPATCH();
     }
     DUMP_rANY: {
