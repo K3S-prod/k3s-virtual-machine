@@ -127,6 +127,16 @@ int Interpreter::Invoke()
         ADVANCE_FETCH_AND_DISPATCH();
     }
 
+    BLT_aNUM:
+    {
+        ASSERT(decoder.GetImm() != 0);
+        if (GetAcc().GetAsNum() < 0.) {
+            pc_ += decoder.GetImm();
+            FETCH_AND_DISPATCH();
+        }
+        ADVANCE_FETCH_AND_DISPATCH();
+    }
+
     RET:
     {
         if (GetStateStack().size() == 1) {

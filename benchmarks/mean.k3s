@@ -19,17 +19,12 @@ loop:
     add r1 r0           # ACC = r1(sum) + r0
     sta r1              # r1 = ACC
     ldai ONE
-    dumpa
-    dump r2
     add2 r2
-    dumpa
-    dump r2
     sta r2              # r2(idx)++
-    dump r2
     ldai AR_SIZE        # ACC = idx - Array size
     sta r0
     sub r2 r0
-    ble loop
+    blt loop
 
     div r1 r0           # ACC = r1(sum) / r0(Array size)
     sta r0              # r0 = mean
@@ -37,12 +32,32 @@ loop:
     ret
 }
 
-.def main 
+.def Array_init {
+    ldai AR_SIZE
+    sta r1              # r1 - array size
+    ldai ZERO
+    sta r2              # r2 - index
+    getarg0 r0          # r0 - array
+init_loop:
+    lda r0
+    setelem r2 r2
+    ldai ONE
+    add2 r2
+    sta r2
+    sub r2 r1
+    blt init_loop
+    ret
+}
+
+.def main
 {
     ldai AR_SIZE
     sta r0
     newarr r0
     sta r0
+    ldai Array_init
+    setarg0 r0
+    call
     ldai Mean
     setarg0 r0
     call

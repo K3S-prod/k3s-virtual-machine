@@ -57,6 +57,13 @@ opcodes:
               overloads:
                 - in: [a:NUM]
                   out: []
+                  semantics: if (acc <= 0) { pc <- pc + i8 }
+            - signature: opc_i8
+              opc:
+                - blt
+              overloads:
+                - in: [a:NUM]
+                  out: []
                   semantics: if (acc < 0) { pc <- pc + i8 }
             - signature: opc
               opc:
