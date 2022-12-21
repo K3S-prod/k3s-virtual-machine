@@ -6,6 +6,10 @@
 
 namespace k3s {
 
+namespace coretypes {
+class Array;
+}
+
 class Register {
 public:
 #include "interpreter/generated/reg_types.inl"
@@ -32,7 +36,11 @@ public:
         type_ = Type::NUM;
         value_ = bit_cast<uint64_t>(val);
     }
-    
+    void SetArray(coretypes::Array *array) 
+    {
+        type_ = Type::ARR;
+        value_ = bit_cast<uint64_t>(array);
+    }
     void Set(const Register &reg) {
         type_ = reg.type_;
         value_ = reg.value_;
@@ -72,6 +80,13 @@ public:
 
     double GetAsNum() const {
         return bit_cast<double>(value_);
+    }
+
+    coretypes::Array *GetAsArray() const {
+        if (type_ != Type::ARR) {
+            LOG_FATAL(INTERPERTER, "TypeError: expected array");
+        }
+        return bit_cast<coretypes::Array *>(value_);
     }
 
 private:

@@ -41,11 +41,16 @@ namespace k3s {
                         <%- inputs.each_with_index do |input, idx| -%>
                             <%- case input[0] -%>
                             <%- when "a" -%>
+                                <%- raise "Acc is already in input" unless !with_acc-%>
                                 <%- with_acc = true -%>
                                 <%- acc_pending_type = "Type::" + input[2..-1] -%>
                             <%- when "r" -%>
                                 <%- type_args.append("Type::" + input[2..-1]) -%>
-                                <%- reg_id_args.append("register_operands_idx_[%d]"%[idx]) -%>
+                                <%- if with_acc then -%>
+                                    <%- reg_id_args.append("register_operands_idx_[%d]"%[idx - 1]) -%>
+                                <%- else -%>
+                                    <%- reg_id_args.append("register_operands_idx_[%d]"%[idx]) -%>
+                                <%- end -%>
                             <%- end  -%>
                         <%- end -%>
                         <%- if inputs.length > 0 then -%>

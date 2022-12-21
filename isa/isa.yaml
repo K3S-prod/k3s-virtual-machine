@@ -57,6 +57,13 @@ opcodes:
               overloads:
                 - in: [a:NUM]
                   out: []
+                  semantics: if (acc <= 0) { pc <- pc + i8 }
+            - signature: opc_i8
+              opc:
+                - blt
+              overloads:
+                - in: [a:NUM]
+                  out: []
                   semantics: if (acc < 0) { pc <- pc + i8 }
             - signature: opc
               opc:
@@ -188,7 +195,7 @@ opcodes:
                 - getelem
               overloads:
                 - in: [a:ARR, r:NUM, r:ANY]
-                  out: [r:ARR]
+                  out: [a:ARR, r:NUM, rANY]
                   semantics: >
                        r2 <- acc[r1];
         Dump:
