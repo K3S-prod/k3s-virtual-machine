@@ -55,21 +55,21 @@ opcodes:
               opc:
                 - ble
               overloads:
-                - in: [a:NUM]
+                - in: ["a:NUM"]
                   out: []
                   semantics: if (acc <= 0) { pc <- pc + i8 }
             - signature: opc_i8
               opc:
                 - blt
               overloads:
-                - in: [a:NUM]
+                - in: ["a:NUM"]
                   out: []
                   semantics: if (acc < 0) { pc <- pc + i8 }
             - signature: opc
               opc:
                 - call
               overloads:
-                - in: [a:FUNC]
+                - in: ["a:FUNC"]
                   out: []
                   semantics: acc.invoke()
             - signature: opc
@@ -86,7 +86,7 @@ opcodes:
                 - ldai
               overloads:
                 - in: []
-                  out: [a:ANY]
+                  out: ["a:ANY"]
                   semantics: > 
                        acc <- allocobj(CONSTANT_POOL[imm8])
         DataFlow:
@@ -94,22 +94,22 @@ opcodes:
               opc:
                 - lda
               overloads:
-                - in: [r:ANY]
-                  out: [a:ANY]
+                - in: ["r:ANY"]
+                  out: ["a:ANY"]
                   semantics: acc <- reg
             - signature: opc_r8
               opc:
                 - sta
               overloads:
-                - in: [r:ANY]
-                  out: [r:ANY]
+                - in: ["r:ANY"]
+                  out: ["r:ANY"]
                   semantics: reg <- acc
             - signature: opc_r4_r4
               opc:
                 - mov
               overloads:
-                - in: [r:ANY, r:ANY]
-                  out: [r:ANY]
+                - in: ["r:ANY", "r:ANY"]
+                  out: ["r:ANY"]
                   semantics: reg2 <- reg1
 
         Arithmetic (two-op):
@@ -117,11 +117,11 @@ opcodes:
               opc:
                 - add
               overloads:
-                - in: [r:NUM, r:NUM]
-                  out: [a:NUM]
+                - in: ["r:NUM", "r:NUM"]
+                  out: ["a:NUM"]
                   semantics: acc <- r0 add r1;
-                - in: [r:STR, r:STR]
-                  out: [a:STR]
+                - in: ["r:STR", "r:STR"]
+                  out: ["a:STR"]
                   semantics: a <- concat(r0, r1);
 
             - signature: opc_r4_r4
@@ -130,8 +130,8 @@ opcodes:
                 - div
                 - mul
               overloads:
-                - in: [r:NUM, r:NUM]
-                  out: [a:NUM]
+                - in: ["r:NUM", "r:NUM"]
+                  out: ["a:NUM"]
                   semantics: acc <- r0 opc r1;
                          
         Arithmetic (single-op):
@@ -139,14 +139,14 @@ opcodes:
               opc:
                 - add2
               overloads:
-                - in:   [a:NUM, r:NUM]
-                  out:  [a:NUM]
+                - in:   ["a:NUM", "r:NUM"]
+                  out:  ["a:NUM"]
                   semantics: acc <- acc opc r0
-                - in:   [a:STR, r:STR]
-                  out:  [a:STR]
+                - in:   ["a:STR", "r:STR"]
+                  out:  ["a:STR"]
                   semantics: acc <- concat(acc, r0)
-                - in:   [a:ARR, r:NUM]
-                  out:  [a:ARR]
+                - in:   ["a:ARR", "r:NUM"]
+                  out:  ["a:ARR"]
                   semantics: foreach idx { acc[idx] <- acc[idx] opc ri }
             - signature: opc_r8
               opc:
@@ -154,11 +154,11 @@ opcodes:
                 - div2
                 - mul2
               overloads:
-                - in:   [a:NUM, r:NUM]
-                  out:  [a:NUM]
+                - in:   ["a:NUM", "r:NUM"]
+                  out:  ["a:NUM"]
                   semantics: acc <- acc opc r0
-                - in:   [a:ARR, r:NUM]
-                  out:  [a:ARR]
+                - in:   ["a:ARR", "r:NUM"]
+                  out:  ["a:ARR"]
                   semantics: foreach idx { acc[idx] <- acc[idx] opc ri }
 
         Arithmetic (zero-op):
@@ -166,8 +166,8 @@ opcodes:
               opc:
                 - deca
               overloads:
-                - in:   [a:NUM]
-                  out:  [a:NUM]
+                - in:   ["a:NUM"]
+                  out:  ["a:NUM"]
                   semantics: acc--
 
         Array-specific:
@@ -175,8 +175,8 @@ opcodes:
               opc:
                 - newarr
               overloads:
-                - in: [r:NUM]
-                  out: [a:ARR]
+                - in: ["r:NUM"]
+                  out: ["a:ARR"]
                   semantics: > 
                        acc <- allocate_array_with_size(ri)
 
@@ -184,8 +184,8 @@ opcodes:
               opc:
                 - setelem
               overloads:
-                - in: [a:ARR, r:NUM, r:ANY]
-                  out: [a:ARR]
+                - in: ["a:ARR", "r:NUM", "r:ANY"]
+                  out: ["a:ARR"]
                   semantics: >
                        acc[r1] = r2;
                        acc <- acc;
@@ -194,8 +194,8 @@ opcodes:
               opc:
                 - getelem
               overloads:
-                - in: [a:ARR, r:NUM, r:ANY]
-                  out: [a:ARR, r:NUM, rANY]
+                - in: ["a:ARR", "r:NUM", "r:ANY"]
+                  out: ["a:ARR", "r:NUM", "r:ANY"]
                   semantics: >
                        r2 <- acc[r1];
         Dump:
@@ -203,14 +203,14 @@ opcodes:
               opc:
                 - dump
               overloads:
-                - in: [r:ANY]
+                - in: ["r:ANY"]
                   out: []
                   semantics: r1.dump()
             - signature: opc
               opc:
                 - dumpa
               overloads:
-                - in: [a:ANY]
+                - in: ["a:ANY"]
                   out: []
                   semantics: acc.dump()
 
@@ -220,8 +220,8 @@ opcodes:
                 - getarg0
                 - setret0
               overloads:
-                - in: [r:ANY]
-                  out: [r:ANY]
+                - in: ["r:ANY"]
+                  out: ["r:ANY"]
                   semantics: >
                     1. reg <- (*this).GetArg<0>();
                     2. (*this).SetRet<0>(reg);
@@ -230,7 +230,7 @@ opcodes:
                 - setarg0
                 - getret0
               overloads:
-                - in: [a:FUNC, r:ANY]
+                - in: ["a:FUNC", "r:ANY"]
                   out: []
                   semantics: > 
                     1. acc.GetAsFunction().SetArg<0>(reg)

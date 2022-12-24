@@ -2,7 +2,6 @@
 #include "assembler/assembler.h"
 #include <vector>
 #include <fstream>
-#include <bit>
 
 namespace k3s {
 
