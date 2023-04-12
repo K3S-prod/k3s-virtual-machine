@@ -14,10 +14,8 @@
 
     .def constructor {
         getarg0 r0      # r0 = a
-
         getthis         # ACC = *this
-        getprop "a"     # ACC = *ACC("a")
-        assiga r0       # ACC(a) = a
+        setfield r0 "a" # (ACC).a = r0
     }
 }
 
@@ -28,21 +26,18 @@ class Foo {
     .def constructor {
         getarg0 r0      # r0 = a
         getthis         # ACC = *this
-        getprop "x"     # ACC = *ACC("x")
-        assiga r0       # ACC(a) = a
+        setfield r0 "x" # (ACC).x = r0
 
         getthis         # ACC = *this
-        getprop "y"     # ACC = *ACC("y")
         stnull r1       # r1 = null
-        assiga r1       # ACC(a) = r1
+        setfield r1 "y" # (ACC).y = r1
     }
 
     pub.def setY {
         getarg0 r0      # r0 = b (obj "Bar")
 
         getthis         # ACC = *this
-        getprop "y"     # ACC = *ACC("y")
-        assiga r0       # ACC(a) = r0
+        setfield r0 "y" # (ACC).y = r0
     }
 }
 
@@ -54,10 +49,10 @@ class Foo {
     newarr r1       # ACC = alloc(ACC(class), r1(num elements))
     sta r2          # r2 = ACC
 
-    ldai Foo        # ACC = Foo (class)
+    newobj Foo      # ACC = alloc(Foo(class))
     stnull r3       # r1 = null
-    crtobj r3       # ACC = alloc(ACC(class)), init ACC(obj) by null
-    sta r3          # r3 = ACC
+    movobja r3      # ACC <- r3(null)
+    sta r3          # r3(outer) = ACC
 
     ldai ONE        # ACC(i) = 1
     sta r4          # r4(i) = ACC
@@ -66,8 +61,7 @@ loop:
     sub r4 r0       # ACC = r4(i) - r0(N)
     bge loop_end    # jump if (ACC >= 0)
 
-    ldai Foo                # ACC = Foo (class)
-    crtobj                  # ACC = alloc(ACC(class))
+    newobj Foo              # ACC = alloc(Foo(class))
     sta r5                  # r5(o1) = ACC
     ldai Foo_constructor    # ACC = Foo:constructor
     setarg0 r5              # ACC(Foo_constructor).args[0] = r5(o1)
@@ -90,8 +84,7 @@ loop:
     setelem r6 r5   # ACC[r6(i % M - 1)] = r5(o1)
 skip_1:
 
-    ldai Bar                # ACC = Bar (class)
-    crtobj                  # ACC = alloc(ACC(class))
+    newobj Bar              # ACC = alloc(Bar(class))
     sta r6                  # r6(o2) = ACC
     ldai Bar_constructor    # ACC = Bar:constructor
     setarg0 r6              # ACC(Bar_constructor).args[0] = r6(o2)
@@ -111,6 +104,7 @@ skip_1:
     call            # ACC()
 skip_2:
 
+    movobj r3 r5    # r3(outer) <- r5(o1)
     jump loop
 loop_end:
 
