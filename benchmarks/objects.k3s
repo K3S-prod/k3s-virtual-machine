@@ -1,6 +1,5 @@
 # Check work of GC with objects
 
-
 .num ONE    1
 .num THREE  3
 .num FIVE   5
@@ -8,36 +7,43 @@
 .num VALUE_N 4000000
 .num VALUE_M 1000
 
+.str FIELD_x "x"
+.str FIELD_y "y"
+.str FIELD_a "a"
 
 .class Bar {
-    pub.num a
+    .num a
 
     .def constructor {
-        getarg0 r0      # r0 = a
-        getthis         # ACC = *this
-        setfield r0 "a" # (ACC).a = r0
+        getarg0 r0          # r0 = a
+        getthis             # ACC = *this
+        ldstr r1 FIELD_a    # r1 = "a"
+        setfield r0 r1      # (ACC).r1("a") = r0
     }
 }
 
 class Foo {
-    priv.num x
-    priv.obj "Bar" y
+    .num x
+    .obj "Bar" y
 
     .def constructor {
-        getarg0 r0      # r0 = a
-        getthis         # ACC = *this
-        setfield r0 "x" # (ACC).x = r0
+        getarg0 r0          # r0 = a
+        getthis             # ACC = *this
+        ldstr r2 FIELD_x    # r2 = "x"
+        setfield r0 r2      # (ACC).r2("x") <- r0
 
-        getthis         # ACC = *this
-        stnull r1       # r1 = null
-        setfield r1 "y" # (ACC).y = r1
+        getthis             # ACC = *this
+        stnull r1           # r1 = null
+        ldstr r2 FIELD_y    # r2 = "y"
+        setfield r1 r2      # (ACC).r2("y") <- r1
     }
 
     pub.def setY {
-        getarg0 r0      # r0 = b (obj "Bar")
+        getarg0 r0          # r0 = b (obj "Bar")
 
-        getthis         # ACC = *this
-        setfield r0 "y" # (ACC).y = r0
+        getthis             # ACC = *this
+        ldstr r1 FIELD_y    # r1 = "y"
+        setfield r0 r1      # (ACC).r1("y") <- r0
     }
 }
 
@@ -47,7 +53,7 @@ class Foo {
 
     ldai Foo        # ACC = Foo (class)
     newarr r1       # ACC = alloc(ACC(class), r1(num elements))
-    sta r2          # r2 = ACC
+    sta r2          # r2(foo) = ACC
 
     newobj Foo      # ACC = alloc(Foo(class))
     stnull r3       # r1 = null
@@ -110,7 +116,6 @@ loop_end:
 
     dump r1
 }
-
 
 .def main {
     ldai VALUE_N    # ACC = N(4000000)
