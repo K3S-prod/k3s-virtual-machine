@@ -1,0 +1,132 @@
+# Check work of GC with objects
+
+
+.num ONE    1
+.num THREE  3
+.num FIVE   5
+
+.num VALUE_N 4000000
+.num VALUE_M 1000
+
+
+.class Bar {
+    pub.num a
+
+    .def constructor {
+        getarg0 r0      # r0 = a
+
+        getthis         # ACC = *this
+        getprop "a"     # ACC = *ACC("a")
+        assiga r0       # ACC(a) = a
+    }
+}
+
+class Foo {
+    priv.num x
+    priv.obj "Bar" y
+
+    .def constructor {
+        getarg0 r0      # r0 = a
+        getthis         # ACC = *this
+        getprop "x"     # ACC = *ACC("x")
+        assiga r0       # ACC(a) = a
+
+        getthis         # ACC = *this
+        getprop "y"     # ACC = *ACC("y")
+        stnull r1       # r1 = null
+        assiga r1       # ACC(a) = r1
+    }
+
+    pub.def setY {
+        getarg0 r0      # r0 = b (obj "Bar")
+
+        getthis         # ACC = *this
+        getprop "y"     # ACC = *ACC("y")
+        assiga r0       # ACC(a) = r0
+    }
+}
+
+.def foo {
+    getarg0 r0      # r0 = N
+    getarg1 r1      # r0 = M
+
+    ldai Foo        # ACC = Foo (class)
+    newarr r1       # ACC = alloc(ACC(class), r1(num elements))
+    sta r2          # r2 = ACC
+
+    ldai Foo        # ACC = Foo (class)
+    stnull r3       # r1 = null
+    crtobj r3       # ACC = alloc(ACC(class)), init ACC(obj) by null
+    sta r3          # r3 = ACC
+
+    ldai ONE        # ACC(i) = 1
+    sta r4          # r4(i) = ACC
+
+loop:
+    sub r4 r0       # ACC = r4(i) - r0(N)
+    bge loop_end    # jump if (ACC >= 0)
+
+    ldai Foo                # ACC = Foo (class)
+    crtobj                  # ACC = alloc(ACC(class))
+    sta r5                  # r5(o1) = ACC
+    ldai Foo_constructor    # ACC = Foo:constructor
+    setarg0 r5              # ACC(Foo_constructor).args[0] = r5(o1)
+    setarg1 r4              # ACC(Foo_constructor).args[1] = r4(i)
+    call                    # ACC()
+
+    ldai THREE      # ACC = 3
+    sta r6          # r6 = ACC
+    mod r4 r6       # ACC = r4(i) mod r6(3)
+
+    bne skip_1      # jump if (ACC != 0)
+
+    ldai ONE        # ACC = 1
+    sta r6          # r6 = ACC
+    mod r4 r1       # ACC = r4(i) mod r1(M)
+    sub2 r6         # ACC = ACC - r6(1)
+    sta r6          # r6 = ACC
+
+    lda r2          # ACC = r2
+    setelem r6 r5   # ACC[r6(i % M - 1)] = r5(o1)
+skip_1:
+
+    ldai Bar                # ACC = Bar (class)
+    crtobj                  # ACC = alloc(ACC(class))
+    sta r6                  # r6(o2) = ACC
+    ldai Bar_constructor    # ACC = Bar:constructor
+    setarg0 r6              # ACC(Bar_constructor).args[0] = r6(o2)
+    setarg1 r4              # ACC(Bar_constructor).args[1] = r4(i)
+    call                    # ACC()
+
+
+    ldai FIVE       # ACC = 5
+    sta r7          # r7 = ACC
+    mod r4 r6       # ACC = r4(i) mod r6(5)
+
+    bne skip_2      # jump if (ACC != 0)
+
+    ldai Foo_setY   # ACC = Foo:setY
+    setarg0 r5      # ACC(Foo_setY).args[0] = r5(o1)
+    setarg1 r6      # ACC(Foo_setY).args[1] = r6(o2)
+    call            # ACC()
+skip_2:
+
+    jump loop
+loop_end:
+
+    dump r1
+}
+
+
+.def main {
+    ldai VALUE_N    # ACC = N(4000000)
+    sta r0          # r0 = ACC
+
+    ldai VALUE_M    # ACC = M(1000)
+    sta r1          # r1 = ACC
+
+    ldai foo        # ACC = foo (func)
+    setarg0 r0      # ACC(foo).args[0] = r0(N)
+    setarg1 r1      # ACC(foo).args[1] = r1(M)
+    call            # ACC()
+}
