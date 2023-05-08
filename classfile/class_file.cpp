@@ -1,5 +1,11 @@
 #include "classfile/class_file.h"
 #include "assembler/assembler.h"
+
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include <vector>
 #include <fstream>
 
@@ -115,74 +121,70 @@ void ClassFile::write_buf(char *src, size_t nbytes)
     buf_pos_ += nbytes;
 }
 
-int ClassFile::LoadClassFile(FILE *fileptr, ClassFileHeader *header,
-                            Vector<BytecodeInstruction> *instr_buffer,
-                            ConstantPool *const_pool) 
+size_t GetFileSize(int fd)
 {
-    int err_code = 0;
-    err_code = ClassFile::LoadHeader(fileptr, header);
-    if (err_code != 0) {
-        return err_code;
-    }
-    err_code = ClassFile::LoadCodeSection(fileptr, *header, instr_buffer);
-    if (err_code != 0) {
-        return err_code;
-    }
-    ASSERT(std::ftell(fileptr) == header->table_offset && "Data offset mismatch");
-    err_code = ClassFile::LoadConstantPool(fileptr, const_pool);
-    if (err_code != 0) {
-        return err_code;
-    }
-    return 0;
+    auto pos = lseek(fd, 0, SEEK_CUR);
+    size_t size = lseek(fd, 0, SEEK_END);
+    lseek(fd, pos, SEEK_SET);
+    return size;
+}
+void *ReadFile(int fd, size_t size, Allocator *allocator)
+{
+    auto buf = allocator->ConstRegion().AllocBytes(size);
+    auto ret = read(fd, buf, size);
+    ASSERT(ret == size);
+    return buf;
 }
 
-int ClassFile::LoadHeader(FILE *fileptr, ClassFileHeader *header) 
+int ClassFile::LoadClassFile(const char *fn, ClassFileHeader **header,
+                            BytecodeInstruction **instr_buffer,
+                            ConstantPool *const_pool, Allocator *allocator) 
 {
-    size_t nread = std::fread(header, sizeof(*header), 1, fileptr);
-    if (nread < 1) {
-        return -1;
-    }
-    return 0;
-}
+    int fd = open(fn, O_RDONLY);
+    ASSERT(fd != -1);
+    auto file_size = GetFileSize(fd);
+    auto filebuf = ReadFile(fd, file_size, allocator);
+    close(fd);
+    
+    *header = ClassFile::LoadHeader(filebuf);
 
-int ClassFile::LoadCodeSection(FILE *fileptr, const ClassFileHeader &header,
-                        Vector<BytecodeInstruction> *instructions_buffer_) 
-{
-    size_t code_size = header.table_offset - header.code_offset;
+    size_t code_size = (*header)->table_offset - (*header)->code_offset;
     ASSERT(code_size % sizeof(BytecodeInstruction) == 0 && "Invalid codesize");
-    instructions_buffer_->resize(code_size / sizeof(BytecodeInstruction));
-    size_t nbytes = std::fread(instructions_buffer_->data(), sizeof(char), 
-                                                            code_size, fileptr);
-    if (nbytes < code_size) {
-        return -1;
-    }
-    return 0;
+    *instr_buffer = ClassFile::LoadCodeSection(filebuf);
+
+
+    int err_code = ClassFile::LoadConstantPool(filebuf + sizeof(ClassFileHeader) + code_size, file_size -  sizeof(ClassFileHeader) - code_size,  const_pool);
+
+    return err_code;
 }
 
-int ClassFile::LoadConstantPool(FILE *fileptr, ConstantPool *constant_pool)
+ClassFileHeader *ClassFile::LoadHeader(void *fileptr) 
 {
-    size_t cur_pos = std::ftell(fileptr);
-    std::fseek(fileptr, 0, SEEK_END);
-    size_t end_pos = std::ftell(fileptr);
-    std::fseek(fileptr, cur_pos, SEEK_SET);
-    size_t data_size = end_pos - cur_pos;
-    Vector<char> buffer(data_size);
-    std::fread(buffer.data(), sizeof(buffer[0]), data_size, fileptr);
-    for (size_t pos = 0; pos < buffer.size(); ) {
+    return reinterpret_cast<ClassFileHeader*>(fileptr);
+}
+
+BytecodeInstruction *ClassFile::LoadCodeSection(void *filebuf) 
+{
+    return reinterpret_cast<BytecodeInstruction *>(filebuf + sizeof(ClassFileHeader));
+}
+
+int ClassFile::LoadConstantPool(void *constpool_file, size_t bytes_count, ConstantPool *constant_pool)
+{
+    for (size_t pos = 0; pos < bytes_count; ) {
         MetaRecord meta;
-        std::memcpy(&meta, &buffer[pos], sizeof(meta));
+        std::memcpy(&meta, constpool_file + pos, sizeof(meta));
         pos += sizeof(meta);
         switch (meta.type) {
         case Register::Type::FUNC: {
             FuncRecord record;
-            std::memcpy(&record, &buffer[pos], sizeof(record));
+            std::memcpy(&record, constpool_file + pos, sizeof(record));
             pos += sizeof(record);
             constant_pool->SetFunction(record.id, record.bc_offset);
             break;
         }
         case Register::Type::NUM: {
             NumRecord record;
-            std::memcpy(&record, &buffer[pos], sizeof(record));
+            std::memcpy(&record, constpool_file + pos, sizeof(record));
             pos += sizeof(record);
             constant_pool->SetNum(record.id, record.value);
             break;

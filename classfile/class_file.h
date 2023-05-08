@@ -3,6 +3,7 @@
 
 #include "common/macro.h"
 #include "interpreter/types/coretypes.h"
+#include "allocator/allocator.h"
 #include "interpreter/bytecode_instruction.h"
 #include <cstdint>
 #include <array>
@@ -101,18 +102,17 @@ public:
     /// Write classfile to \p fileptr
     void DumpClassFile(FILE *fileptr);
     /// Load classfile from \p fileptr
-    static int LoadClassFile(FILE *fileptr, ClassFileHeader *header,
-                            Vector<BytecodeInstruction> *instructions_buffer,
-                            ConstantPool *const_pool);
+    static int LoadClassFile(const char *fn, ClassFileHeader **header,
+                            BytecodeInstruction **instr_buffer,
+                            ConstantPool *const_pool, Allocator *allocator);
 
 private:
     /// Loads classfile to \p header header from \p fileptr
-    static int LoadHeader(FILE *fileptr, ClassFileHeader *header);
+    static ClassFileHeader *LoadHeader(void *fileptr);
     /// Loads code section to \p instructions_buffer_ from \p fileptr
-    static int LoadCodeSection(FILE *fileptr, const ClassFileHeader &header,
-                        Vector<BytecodeInstruction> *instructions_buffer);
+    static BytecodeInstruction *LoadCodeSection(void *fileptr);
     /// Loads constant pool to \p constant_pool from \p fileptr
-    static int LoadConstantPool(FILE *fileptr, ConstantPool *constant_pool);
+    static int LoadConstantPool(void *constpool_file, size_t bytes_count, ConstantPool *constant_pool);
     static size_t EstimateEncodingSize(const ConstantPool::Element &element);
     void AllocateBuffer();
     /// Interfaces foe writing classfile parts to file

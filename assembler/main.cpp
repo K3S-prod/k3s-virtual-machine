@@ -8,7 +8,7 @@
 
 int main(int argc, char *argv[])
 {
-    if (argc < 2) {
+    if (argc <= 2) {
         LOG_FATAL(ASSEMBLER, "Please, provide file");
     }
     auto file = std::fopen(argv[1], "r");
