@@ -39,8 +39,8 @@ loop:
     sta r2              # r2 - index
     getarg0 r0          # r0 - array
 init_loop:
-    lda r0
-    setelem r2 r2
+    lda r2
+    setelem r0 r2
     ldai ONE
     add2 r2
     sta r2

@@ -94,12 +94,12 @@ int Interpreter::Invoke()
 
     }
 
-    STA_rANY:
+    STA_aANY:
     {
         GetReg(decoder.GetFirstReg()).Set(GetAcc());
         ADVANCE_FETCH_AND_DISPATCH();
     }
-    MOV_rANY_rANY:
+    MOV_rANY:
     {
         GetReg(decoder.GetSecondReg()).Set(GetReg(decoder.GetFirstReg()));
         ADVANCE_FETCH_AND_DISPATCH();
@@ -159,7 +159,7 @@ int Interpreter::Invoke()
         ADVANCE_FETCH_AND_DISPATCH();
     }
 
-    GETRET0_aFUNC_rANY: {
+    GETRET0_aFUNC: {
         auto *func_obj = bit_cast<coretypes::Function *>(GetAcc().GetValue());
         size_t reg_id = decoder.GetFirstReg();
         GetReg(reg_id).Set(func_obj->GetRet<0>());
