@@ -13,8 +13,8 @@
 loop:
     # r0 = Array[idx]
     getarg0 r0          # r0 = Array
-    lda r0              # ACC = r0
-    getelem r2 r0       # r0 = Array[r2]
+    getelem r0 r2       # acc = r0[r2]
+    sta r0              #
                         #
     add r1 r0           # ACC = r1(sum) + r0
     sta r1              # r1 = ACC

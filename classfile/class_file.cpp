@@ -76,6 +76,10 @@ size_t ClassFile::EstimateEncodingSize(const ConstantPool::Element &element)
         case Register::Type::NUM:
             size += sizeof(NumRecord);
             break;
+        case Register::Type::STR:
+            size += sizeof(StrRecord);
+            size += ENCODER.GetStringsStorage()[element.val_].size() + 1;
+            break;
         case Register::Type::ANY:
             size = 0;
             break;
@@ -107,13 +111,19 @@ void ClassFile::WriteObj(const ConstantPool::Element &element, int8_t pool_id)
             write_buf(reinterpret_cast<char *>(&record), sizeof(record));
             break;
         }
+        case Register::Type::STR: {
+            StrRecord record = { .size = ENCODER.GetStringsStorage()[element.val_].size(), .id = pool_id };
+            write_buf(reinterpret_cast<char *>(&record), sizeof(record));
+            write_buf(ENCODER.GetStringsStorage()[element.val_].c_str(), record.size + 1);
+            break;
+        }
         default:
             // ASSERT(0 && "Unreachable: encoding of unsupported object type");
             break;
     }
 }
 
-void ClassFile::write_buf(char *src, size_t nbytes) 
+void ClassFile::write_buf(const char *src, size_t nbytes) 
 {
     ASSERT(src && "Invalid pointer");
     char *buf_ptr = file_buffer_.data() + buf_pos_;
@@ -153,7 +163,7 @@ int ClassFile::LoadClassFile(const char *fn, ClassFileHeader **header,
     *instr_buffer = ClassFile::LoadCodeSection(filebuf);
 
 
-    int err_code = ClassFile::LoadConstantPool(filebuf + sizeof(ClassFileHeader) + code_size, file_size -  sizeof(ClassFileHeader) - code_size,  const_pool);
+    int err_code = ClassFile::LoadConstantPool(filebuf + sizeof(ClassFileHeader) + code_size, file_size -  sizeof(ClassFileHeader) - code_size,  const_pool, allocator);
 
     return err_code;
 }
@@ -168,7 +178,7 @@ BytecodeInstruction *ClassFile::LoadCodeSection(void *filebuf)
     return reinterpret_cast<BytecodeInstruction *>(filebuf + sizeof(ClassFileHeader));
 }
 
-int ClassFile::LoadConstantPool(void *constpool_file, size_t bytes_count, ConstantPool *constant_pool)
+int ClassFile::LoadConstantPool(void *constpool_file, size_t bytes_count, ConstantPool *constant_pool, Allocator *allocator)
 {
     for (size_t pos = 0; pos < bytes_count; ) {
         MetaRecord meta;
@@ -176,20 +186,22 @@ int ClassFile::LoadConstantPool(void *constpool_file, size_t bytes_count, Consta
         pos += sizeof(meta);
         switch (meta.type) {
         case Register::Type::FUNC: {
-            FuncRecord record;
-            std::memcpy(&record, constpool_file + pos, sizeof(record));
-            pos += sizeof(record);
-            constant_pool->SetFunction(record.id, record.bc_offset);
+            auto *record = reinterpret_cast<FuncRecord *>(constpool_file + pos);
+            pos += sizeof(*record);
+            constant_pool->SetFunction(record->id, record->bc_offset);
             break;
-        }
-        case Register::Type::NUM: {
-            NumRecord record;
-            std::memcpy(&record, constpool_file + pos, sizeof(record));
-            pos += sizeof(record);
-            constant_pool->SetNum(record.id, record.value);
+        } case Register::Type::NUM: {
+            auto *record = reinterpret_cast<NumRecord *>(constpool_file + pos);
+            pos += sizeof(*record);
+            constant_pool->SetNum(record->id, record->value);
             break;
-        }
-        default:
+        } case Register::Type::STR: {
+            auto *record = reinterpret_cast<StrRecord *>(constpool_file + pos);
+            pos += sizeof(*record) + record->size + 1;
+            ASSERT(record->data[record->size] == '\0');
+            constant_pool->SetStr(record->id, reinterpret_cast<uint64_t>(record->data));
+            break;
+        } default:
             std::cerr << "Unreachable executed: trying to load unsupported type\n";
             std::exit(EXIT_FAILURE);
             break;

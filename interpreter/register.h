@@ -8,6 +8,8 @@ namespace k3s {
 
 namespace coretypes {
 class Array;
+class Object;
+class String;
 }
 
 class Register {
@@ -32,11 +34,15 @@ public:
         type_ = type;
         value_ = val;
     }
-    void SetNum(double val) {
+    void Set(double val) {
         type_ = Type::NUM;
         value_ = bit_cast<uint64_t>(val);
     }
-    void SetArray(coretypes::Array *array) 
+    void Set(coretypes::String *val) {
+        type_ = Type::STR;
+        value_ = reinterpret_cast<uint64_t>(val);
+    }
+    void Set(coretypes::Array *array) 
     {
         type_ = Type::ARR;
         value_ = bit_cast<uint64_t>(array);
@@ -55,7 +61,11 @@ public:
         switch (type_) {
         case Type::NUM:
             std::cout << "val_: " << bit_cast<double>(value_) << "}" << std::endl;
-            break;        
+            break; 
+        case Type::STR:
+            // TODO: implement this properly in .cpp file
+            std::cout << "val_: " << reinterpret_cast<const char *>(value_ + 8) << "}" << std::endl;
+            break;          
         default:
             std::cout << "val_: " << value_ << "}" << std::endl;
             break;
@@ -87,6 +97,18 @@ public:
             LOG_FATAL(INTERPERTER, "TypeError: expected array");
         }
         return bit_cast<coretypes::Array *>(value_);
+    }
+    coretypes::Object *GetAsObject() const {
+        if (type_ != Type::OBJ) {
+            LOG_FATAL(INTERPERTER, "TypeError: expected object");
+        }
+        return bit_cast<coretypes::Object *>(value_);
+    }
+    const char *GetAsString() const {
+        if (type_ != Type::STR) {
+            LOG_FATAL(INTERPERTER, "TypeError: expected string");
+        }
+        return reinterpret_cast<const char *>(value_);
     }
 
 private:

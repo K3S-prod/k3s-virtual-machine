@@ -23,13 +23,16 @@ integ [+-]?[0-9]+
 [\n]            { ASM_LINE_NO ++; }
 
 ".def"          { return FUNCTION_KEYW; }
+".obj"          { return OBJ_KEYW; }
 ".num"          { return NUM_KEYW; }
+".str"          { return STR_KEYW; }
 
 [{]             { return B_BEGIN; }
 [:]             { return COLON; }
 [}]             { return B_END; }
 
 {doubl}         { return NUM; }
+["].*["]        { return STR_LITERAL; }
 
 [ ]+            {}
 {integ}         {

@@ -1,0 +1,23 @@
+# Check work of GC with objects
+
+.num ONE    1
+.num THREE  3
+.num FIVE   5
+
+.num VALUE_N 4000000
+.num VALUE_M 1000
+
+.str FIELD_x "xxxxxxxxxx"
+.str FIELD_y "yyyyyyyyyyyy"
+.str FIELD_a "aaaaaaaaaaaaaaa"
+
+
+.def main {
+    ldai FIELD_a
+    dumpa
+    ldai FIELD_x
+    dumpa
+    ldai FIELD_y
+    dumpa
+    ret
+}

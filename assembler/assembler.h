@@ -55,15 +55,12 @@ public:
 
     static void DeclareAndDefineFunction(char *c_str)
     {
-        std::string key(c_str);
-        ASSERT(ENCODER.declared_objects_.find(key) == ENCODER.declared_objects_.end());
-        uint8_t idx = ENCODER.declared_objects_.size();
-        ENCODER.declared_objects_[key] = idx;
+        DeclareId(c_str);
         auto bc_offset = ENCODER.instructions_buffer_.size();
-        ENCODER.constant_pool_.SetFunction(idx, bc_offset);
+        ENCODER.constant_pool_.SetFunction(ENCODER.temp_idx_, bc_offset);
     }
 
-    static void DeclareNum(char *c_str)
+    static void DeclareId(char *c_str)
     {
         std::string key(c_str);
         ASSERT(ENCODER.declared_objects_.find(key) == ENCODER.declared_objects_.end());
@@ -79,6 +76,15 @@ public:
     {
         double num = atof(c_str);
         ENCODER.constant_pool_.SetNum(ENCODER.temp_idx_, num);
+    }
+
+    static void DefineStr(const char *c_str)
+    {
+        ASSERT(c_str[0] == '"');
+        ENCODER.strings_storage_.emplace_back(c_str + 1);
+        ASSERT(ENCODER.strings_storage_.back().back() == '"');
+        ENCODER.strings_storage_.back().pop_back();
+        ENCODER.constant_pool_.SetStr(ENCODER.temp_idx_, ENCODER.strings_storage_.size() - 1);
     }
 
     static uint8_t TryResolveName(const char *c_str)
@@ -154,11 +160,16 @@ public:
         return ENCODER.constant_pool_;
     }
 
+    const auto &GetStringsStorage()
+    {
+        return strings_storage_;
+    } 
 private:
     Vector<BytecodeInstruction> instructions_buffer_ {};
     Hash<std::string, uint8_t> declared_objects_ {};
     Hash<std::string, size_t> declared_labels_ {};
     Hash<std::string, Vector<size_t>> unresolved_labels_ {};
+    Vector<std::string> strings_storage_ {};
     ConstantPool constant_pool_ {};
 
     uint8_t temp_idx_ {};

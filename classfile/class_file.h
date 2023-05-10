@@ -37,10 +37,10 @@ public:
         data_[constant_pool_id].val_ = bit_cast<uint64_t>(num);
     }
     
-    size_t GetNum(uint8_t constant_pool_id)
+    void SetStr(uint8_t constant_pool_id, uint64_t buf)
     {
-        ASSERT(data_[constant_pool_id].type_ == Type::NUM);
-        return data_[constant_pool_id].val_;
+        data_[constant_pool_id].type_ = Type::STR;
+        data_[constant_pool_id].val_ = buf;
     }
 
     void SetFunction(uint8_t constant_pool_id, size_t bytecode_ofs)
@@ -99,6 +99,11 @@ public:
         double value;
         int8_t id;
     };
+    struct StrRecord {
+        size_t size;
+        int8_t id;
+        alignas(8) char data[];
+    };
     /// Write classfile to \p fileptr
     void DumpClassFile(FILE *fileptr);
     /// Load classfile from \p fileptr
@@ -112,7 +117,7 @@ private:
     /// Loads code section to \p instructions_buffer_ from \p fileptr
     static BytecodeInstruction *LoadCodeSection(void *fileptr);
     /// Loads constant pool to \p constant_pool from \p fileptr
-    static int LoadConstantPool(void *constpool_file, size_t bytes_count, ConstantPool *constant_pool);
+    static int LoadConstantPool(void *constpool_file, size_t bytes_count, ConstantPool *constant_pool, Allocator *allocator);
     static size_t EstimateEncodingSize(const ConstantPool::Element &element);
     void AllocateBuffer();
     /// Interfaces foe writing classfile parts to file
@@ -120,7 +125,7 @@ private:
     void WriteCodeSection();
     void WriteConstantPool();
     void WriteObj(const ConstantPool::Element &element, int8_t pool_id);
-    void write_buf(char *src, size_t nbytes);
+    void write_buf(const char *src, size_t nbytes);
 };
 
 } // namespace k3s

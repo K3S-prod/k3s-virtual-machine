@@ -20,9 +20,12 @@ void yyerror(const char *s)
 /* declare tokens */
 %token REG
 %token NUM
+%token STR_LITERAL
 %token IMM_LITERAL
 %token SPACE
 %token FUNCTION_KEYW
+%token OBJ_KEYW
+%token STR_KEYW
 %token NUM_KEYW
 %token IDENTIFIER
 %token B_BEGIN
@@ -41,14 +44,23 @@ program:
     %empty;
 
 declaration:
-    function |
-    num;
+    num |
+    str |
+    obj |
+    function;
+
+obj:
+    OBJ_KEYW IDENTIFIER { k3s::AsmEncoder::DeclareAndDefineFunction(yytext); } B_BEGIN  B_END;
 
 function:
     FUNCTION_KEYW IDENTIFIER { k3s::AsmEncoder::DeclareAndDefineFunction(yytext); } B_BEGIN instructions B_END { k3s::AsmEncoder::CheckLabelsResolved(); };
 
 num:
-    NUM_KEYW IDENTIFIER { k3s::AsmEncoder::DeclareNum(yytext); } NUM { k3s::AsmEncoder::DefineNum(yytext); }
+    NUM_KEYW IDENTIFIER { k3s::AsmEncoder::DeclareId(yytext); } NUM { k3s::AsmEncoder::DefineNum(yytext); }
+
+str:
+    STR_KEYW IDENTIFIER { k3s::AsmEncoder::DeclareId(yytext); } STR_LITERAL { k3s::AsmEncoder::DefineStr(yytext); }
+
 instructions:
     instruction_or_label instructions |
     instruction_or_label;
