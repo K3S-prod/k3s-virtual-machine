@@ -59,7 +59,7 @@ int Interpreter::LoadClassFile(const char *fn) {
 int Interpreter::Invoke()
 {
     InstDecoder decoder;
-    auto *main_ptr = allocator_.RuntimeRegion().NewFunction(pc_);
+    auto *main_ptr = coretypes::Function::New(allocator_.RuntimeRegion(), pc_);
     GetStateStack().emplace_back(-1, main_ptr);
 
 #include "generated/dispatch_table.inl"
@@ -73,14 +73,18 @@ int Interpreter::Invoke()
         switch (elem.type_) {
             case Type::FUNC: {
                 size_t bc_offs = GetConstantPool().GetFunctionBytecodeOffset(decoder.GetImm());
-                auto *ptr = allocator_.RuntimeRegion().NewFunction(bc_offs);
-                GetAcc().Set(Type::FUNC, bit_cast<uint64_t>(ptr));
+                auto *ptr = coretypes::Function::New(allocator_.RuntimeRegion(), bc_offs);
+                GetAcc().Set(ptr);
                 break;
             } case Type::NUM: {
                 GetAcc().Set(bit_cast<double>(elem.val_)); 
                 break;
             } case Type::STR: {
-                auto *ptr = allocator_.RuntimeRegion().NewString(reinterpret_cast<const char *>(elem.val_));
+                auto *ptr = coretypes::String::New(allocator_.RuntimeRegion(), reinterpret_cast<const char *>(elem.val_));
+                GetAcc().Set(ptr); 
+                break;
+            } case Type::OBJ: {
+                auto *ptr = coretypes::Object::New(allocator_.RuntimeRegion(), *GetConstantPool().GetMappingForObjAt(decoder.GetImm()), reinterpret_cast<size_t *>(elem.val_));
                 GetAcc().Set(ptr); 
                 break;
             }
@@ -200,12 +204,6 @@ int Interpreter::Invoke()
         func_obj->SetArg<1>(GetReg(reg_id));
         ADVANCE_FETCH_AND_DISPATCH();
     }
-    SETTHIS_aFUNC_rANY: {
-        auto *func_obj = bit_cast<coretypes::Function *>(GetAcc().GetValue());
-        size_t reg_id = decoder.GetFirstReg();
-        func_obj->SetThis(GetReg(reg_id));
-        ADVANCE_FETCH_AND_DISPATCH();
-    }
 
     GETRET0_aFUNC: {
         auto *func_obj = bit_cast<coretypes::Function *>(GetAcc().GetValue());
@@ -224,7 +222,7 @@ int Interpreter::Invoke()
     CALL_aFUNC: {
         // return to the caller frame;
         // stack contains pc of the call instruction:
-        auto *func_obj = bit_cast<coretypes::Function *>(GetAcc().GetValue()); 
+        auto *func_obj = GetAcc().GetAsFunction(); 
         GetStateStack().emplace_back(pc_, func_obj);
         pc_ = func_obj->GetTargetPc();
         FETCH_AND_DISPATCH();
@@ -314,7 +312,7 @@ int Interpreter::Invoke()
     NEWARR_rNUM: {
         size_t reg_id = decoder.GetFirstReg();
         size_t arr_sz = static_cast<size_t>(GetReg(reg_id).GetAsNum());
-        GetAcc().Set(allocator_.RuntimeRegion().NewArray(arr_sz));
+        GetAcc().Set(coretypes::Array::New(allocator_.RuntimeRegion(), arr_sz));
         ADVANCE_FETCH_AND_DISPATCH();
     }
     SETELEM_aANY_rARR_rNUM: {
@@ -324,7 +322,7 @@ int Interpreter::Invoke()
     }
     SETELEM_aANY_rOBJ_rSTR: {
         auto string = GetReg(decoder.GetSecondReg()).GetAsString();
-        GetReg(decoder.GetFirstReg()).GetAsObject()->SetElem(string, GetAcc());
+        GetReg(decoder.GetFirstReg()).GetAsObject()->SetElem(string->GetData(), GetAcc());
         ADVANCE_FETCH_AND_DISPATCH();
     }
     GETELEM_rARR_rNUM: {
@@ -334,7 +332,10 @@ int Interpreter::Invoke()
     }
     GETELEM_rOBJ_rSTR: {
         auto string = GetReg(decoder.GetSecondReg()).GetAsString();
-        GetAcc().Set(GetReg(decoder.GetFirstReg()).GetAsObject()->GetElem(string));
+        GetAcc().Set(GetReg(decoder.GetFirstReg()).GetAsObject()->GetElem(string->GetData()));
+        if (GetAcc().GetType() == Type::FUNC) {
+            GetAcc().GetAsFunction()->SetThis(GetReg(decoder.GetFirstReg()));
+        }
         ADVANCE_FETCH_AND_DISPATCH();
     }
     DUMP_rANY: {

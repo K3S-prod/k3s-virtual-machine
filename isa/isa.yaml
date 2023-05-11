@@ -265,13 +265,11 @@ opcodes:
         opc:
         - setarg0
         - setarg1
-        - setthis
         overloads:
         - in: ["a:FUNC", "r:ANY"]
           out: []
           semantics: > 
             1. acc.GetAsFunction().SetArg<i>(reg)
-            2. acc.GetAsFunction().SetThis(reg)
       - signature: opc_r8
         opc:
         - getret0

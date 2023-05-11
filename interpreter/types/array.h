@@ -17,10 +17,22 @@ public:
         return data_[idx]; 
     }
     void SetElem(size_t idx, const Register &val) { data_[idx] = val; }
+
+    template <uintptr_t START_PTR, size_t SIZE>
+    static coretypes::Array *New(Allocator::Region<START_PTR, SIZE> region, size_t size);
+
 private:
     size_t size_;
     elem_t data_[];
 };
+
+
+template <uintptr_t START_PTR, size_t SIZE>
+inline coretypes::Array *Array::New(Allocator::Region<START_PTR, SIZE> region, size_t size)
+{
+    void *ptr = region.AllocBytes(sizeof(coretypes::Array) + sizeof(coretypes::Array::elem_t) * size);
+    return new (ptr) coretypes::Array(size);
+}
 
 }
 

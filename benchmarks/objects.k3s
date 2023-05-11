@@ -23,6 +23,7 @@
         getarg0 r2          # ACC = a
         lda r2
         setelem r0 r1       # r0[r1] = acc
+        ret
     }
 }
 
@@ -36,13 +37,14 @@
         sta r1
         getarg0 r2          # acc = a
         lda r2
-        setelem r0 r2       # r0[r1] = acc
+        setelem r0 r1       # r0[r1] = acc
 
         ldai FIELD_y        # r1 = "y"
         sta r1
         stnull r2           # r1 = null
         lda r2
         setelem r0 r1      # r0[r1] = r1
+        ret
     }
 
     .def setY_ {
@@ -52,6 +54,7 @@
         getarg0 r2          # r0 = b (obj "Bar")
         lda r2
         setelem r0 r1       # r0[r1] = acc
+        ret
     }
 }
 
@@ -123,6 +126,7 @@ skip_2:
 loop_end:
 
     dump r1
+    ret
 }
 
 .def main {
@@ -136,4 +140,5 @@ loop_end:
     setarg0 r0      # ACC(foo).args[0] = r0(N)
     setarg1 r1      # ACC(foo).args[1] = r1(M)
     call            # ACC()
+    ret
 }

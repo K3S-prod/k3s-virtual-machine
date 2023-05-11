@@ -49,6 +49,12 @@ public:
         data_[constant_pool_id].val_ = bytecode_ofs;
     }
 
+    void SetObject(uint8_t constant_pool_id, uint64_t val)
+    {
+        data_[constant_pool_id].type_ = Type::OBJ;
+        data_[constant_pool_id].val_ = val;
+    }
+
     size_t GetFunctionBytecodeOffset(uint8_t constant_pool_id)
     {
         ASSERT(data_[constant_pool_id].type_ == Type::FUNC);
@@ -59,6 +65,14 @@ public:
     {
         return data_[constant_pool_id];
     }
+    auto *GetMappingForObjAt(uint8_t constant_pool_id)
+    {
+        return &object_mappings_[constant_pool_id];
+    }
+    const auto *GetMappingForObjAt(uint8_t constant_pool_id) const
+    {
+        return &object_mappings_[constant_pool_id];
+    }
 
     const auto &Elements() 
     {
@@ -67,6 +81,7 @@ public:
 
 private:
     std::array<Element, CONSTANT_POOL_SIZE> data_;
+    std::array<ConstUnorderedMap<std::string_view, size_t>, CONSTANT_POOL_SIZE> object_mappings_;
 };
 
 struct ClassFileHeader 
@@ -101,6 +116,12 @@ public:
     };
     struct StrRecord {
         size_t size;
+        int8_t id;
+        alignas(8) char data[];
+    };
+    struct ObjRecord {
+        size_t data_fields_n_;
+        size_t methods_n_;
         int8_t id;
         alignas(8) char data[];
     };

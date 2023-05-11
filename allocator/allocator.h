@@ -9,11 +9,6 @@
 
 namespace k3s {
 
-namespace coretypes {
-    class Function;
-    class Array;
-}
-
 class Allocator
 {
     static constexpr uintptr_t ALLOC_START_ADDR = 0xE000000;
@@ -28,6 +23,11 @@ public:
         public:
             using value_type = T;
 
+            AllocatorRequirements() = default;
+
+            template <typename U>
+            AllocatorRequirements(const AllocatorRequirements<U> &a2) {}
+
             [[nodiscard]] T* allocate(size_t n)
             {
                 return Region::Alloc<T>(n);
@@ -36,8 +36,6 @@ public:
             {
                 return;
             }
-        private:
-            Region *region_{};
         };
 
     public:
@@ -66,10 +64,6 @@ public:
         {
             return reinterpret_cast<void *>(START_PTR);
         }
-
-        coretypes::Function *NewFunction(size_t bc_offs);
-        coretypes::Array *NewArray(size_t size);
-        coretypes::String *NewString(const char *c_str);
 
         static void *AllocBytes(size_t n_bytes)
         {

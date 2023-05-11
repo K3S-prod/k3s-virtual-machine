@@ -9,6 +9,7 @@ namespace k3s {
 namespace coretypes {
 class Array;
 class Object;
+class Function;
 class String;
 }
 
@@ -40,6 +41,14 @@ public:
     }
     void Set(coretypes::String *val) {
         type_ = Type::STR;
+        value_ = reinterpret_cast<uint64_t>(val);
+    }
+    void Set(coretypes::Function *val) {
+        type_ = Type::FUNC;
+        value_ = reinterpret_cast<uint64_t>(val);
+    }
+    void Set(coretypes::Object *val) {
+        type_ = Type::OBJ;
         value_ = reinterpret_cast<uint64_t>(val);
     }
     void Set(coretypes::Array *array) 
@@ -92,6 +101,13 @@ public:
         return bit_cast<double>(value_);
     }
 
+    coretypes::Function *GetAsFunction() const {
+        if (type_ != Type::FUNC) {
+            LOG_FATAL(INTERPERTER, "TypeError: expected func");
+        }
+        return bit_cast<coretypes::Function *>(value_);
+    }
+
     coretypes::Array *GetAsArray() const {
         if (type_ != Type::ARR) {
             LOG_FATAL(INTERPERTER, "TypeError: expected array");
@@ -104,11 +120,11 @@ public:
         }
         return bit_cast<coretypes::Object *>(value_);
     }
-    const char *GetAsString() const {
+    coretypes::String *GetAsString() const {
         if (type_ != Type::STR) {
             LOG_FATAL(INTERPERTER, "TypeError: expected string");
         }
-        return reinterpret_cast<const char *>(value_);
+        return bit_cast<coretypes::String *>(value_);
     }
 
 private:

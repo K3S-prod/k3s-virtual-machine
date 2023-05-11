@@ -2,6 +2,7 @@
 #define INTERPRETER_TYPES_FUNCTION_H
 
 #include "interpreter/register.h"
+#include "allocator/allocator.h"
 #include <cstddef>
 
 namespace k3s::coretypes {
@@ -42,12 +43,22 @@ public:
         outputs_[i] = reg;
     }
 
+    template <uintptr_t START_PTR, size_t SIZE>
+    static coretypes::Function *New(Allocator::Region<START_PTR, SIZE> reg, size_t bc_offs);
+
 private:
     const size_t target_pc_ {};
     Register this_ {};
     Register inputs_[4U] {};
     Register outputs_[4U] {};
 };
+
+template <uintptr_t START_PTR, size_t SIZE>
+inline coretypes::Function *Function::New(Allocator::Region<START_PTR, SIZE> reg, size_t bc_offs)
+{
+    void *ptr = reg.AllocBytes(sizeof(coretypes::Function));
+    return new (ptr) coretypes::Function(bc_offs);
+}
 
 }
 
