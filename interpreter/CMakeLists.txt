@@ -29,10 +29,11 @@ add_custom_target(interpreter_gen DEPENDS ${TEMPLATES_INSTANTIATED})
 
 set(INTERPRETER_SRC 
     "${INTERPRETER_SOURCE_DIR}/interpreter.cpp"
+    "${INTERPRETER_SOURCE_DIR}/register.cpp"
     "${INTERPRETER_BINARY_DIR}/generated/inst_decoder.cpp"
 )
 
-add_executable(interpreter
+add_library(interpreter
     ${INTERPRETER_SRC}
 )
 

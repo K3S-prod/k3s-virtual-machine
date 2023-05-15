@@ -1,9 +1,11 @@
 #ifndef INTERPRETER_TYPES_STRING_H
 #define INTERPRETER_TYPES_STRING_H
 
+#include "allocator/object_header.h"
+
 namespace k3s::coretypes {
 
-class String {
+class String : public ObjectHeader{
 public:
     using elem_t = char;
 
@@ -21,18 +23,21 @@ public:
     }
     
     template <uintptr_t START_PTR, size_t SIZE>
-    static coretypes::String *New(Allocator::Region<START_PTR, SIZE> region, const char *c_str);
+    static coretypes::String *New(GCRegion<START_PTR, SIZE> region, const char *c_str);
 private:
     size_t size_;
     elem_t data_[];
 };
 
 template <uintptr_t START_PTR, size_t SIZE>
-inline String *String::New(Allocator::Region<START_PTR, SIZE> region, const char *c_str)
+inline String *String::New(GCRegion<START_PTR, SIZE> region, const char *c_str)
 {
     size_t size = std::string_view(c_str).size();
-    void *ptr = region.AllocBytes(sizeof(String) + sizeof(String::elem_t) * size + 1);
-    return new (ptr) String(size, c_str);
+    size_t allocated_size = sizeof(coretypes::String) + sizeof(coretypes::String::elem_t) * size + 1;
+    void *storage = region.AllocBytes(allocated_size);
+    auto *ptr = new (storage) String(size, c_str);
+    ptr->SetAllocatedSize(allocated_size);
+    return ptr;
 }
 }
 

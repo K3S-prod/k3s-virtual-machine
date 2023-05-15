@@ -89,14 +89,11 @@ loop:
 
     bne skip_1      # jump if (ACC != 0)
 
-    ldai ONE        # ACC = 1
-    sta r6          # r6 = ACC
     mod r4 r1       # ACC = r4(i) mod r1(M)
-    sub2 r6         # ACC = ACC - r6(1)
     sta r6          # r6 = ACC
 
     lda r5          # ACC = r5
-    setelem r2 r6   # r2[r6(i % M - 1)] = acc(o1)
+    setelem r2 r6   # r2[r6(i % M)] = acc(o1)
 skip_1:
 
     ldai Bar                # ACC = alloc(Bar(class))
@@ -122,10 +119,13 @@ skip_1:
 skip_2:
 
     mov r5 r3    # r3(outer) <- r5(o1)
+    ldai ONE
+    add2 r4
+    sta r4
     jump loop
 loop_end:
 
-    dump r1
+    dump r2
     ret
 }
 

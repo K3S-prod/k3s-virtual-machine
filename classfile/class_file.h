@@ -80,8 +80,8 @@ public:
     }
 
 private:
-    std::array<Element, CONSTANT_POOL_SIZE> data_;
-    std::array<ConstUnorderedMap<std::string_view, size_t>, CONSTANT_POOL_SIZE> object_mappings_;
+    std::array<Element, CONSTANT_POOL_SIZE> data_{};
+    std::array<ConstUnorderedMap<std::string_view, size_t>, CONSTANT_POOL_SIZE> object_mappings_{};
 };
 
 struct ClassFileHeader 
@@ -134,11 +134,11 @@ public:
 
 private:
     /// Loads classfile to \p header header from \p fileptr
-    static ClassFileHeader *LoadHeader(void *fileptr);
+    static ClassFileHeader *LoadHeader(char *fileptr);
     /// Loads code section to \p instructions_buffer_ from \p fileptr
-    static BytecodeInstruction *LoadCodeSection(void *fileptr);
+    static BytecodeInstruction *LoadCodeSection(char *fileptr);
     /// Loads constant pool to \p constant_pool from \p fileptr
-    static int LoadConstantPool(void *constpool_file, size_t bytes_count, ConstantPool *constant_pool, Allocator *allocator);
+    static int LoadConstantPool(char *constpool_file, size_t bytes_count, ConstantPool *constant_pool, Allocator *allocator);
     static size_t EstimateEncodingSize(const ConstantPool::Element &element);
     void AllocateBuffer();
     /// Interfaces foe writing classfile parts to file

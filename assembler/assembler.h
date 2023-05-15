@@ -63,12 +63,14 @@ public:
     {
         DeclareId(c_str);
         auto bc_offset = ENCODER.instructions_buffer_.size();
+        LOG_DEBUG(ASSEMBLER, "Function `" << c_str << "` (pc " << bc_offset << ")");
         ENCODER.constant_pool_.SetFunction(ENCODER.temp_idx_, bc_offset);
     }
     
     static void DeclareAndDefineMethod(char *c_str)
     {
         auto bc_offset = ENCODER.instructions_buffer_.size();
+        LOG_DEBUG(ASSEMBLER, "Method `" << c_str << "` (pc " << bc_offset << ")");
         ENCODER.objects_storage_.back().methods_bc_offsets_.push_back(bc_offset);
         ENCODER.objects_storage_.back().methods_.emplace_back(c_str);
     }

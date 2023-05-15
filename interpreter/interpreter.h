@@ -10,16 +10,20 @@ namespace k3s {
 
 class Interpreter {
 public:
+    Interpreter()
+    {
+        state_stack_.reserve(Allocator::StackRegionT::MAX_ALLOC_SIZE / sizeof(InterpreterState));
+    }
     // Returns after execution of Opcode::RET with empty call stack
     int Invoke();
 
-    int LoadClassFile(const char *fn);
-
-    void SetProgram(BytecodeInstruction *program) {
+    void SetProgram(BytecodeInstruction *program)
+    {
         program_ = program;
     }
 
-    void SetPc(size_t pc) {
+    void SetPc(size_t pc)
+    {
         pc_ = pc;
     }
 
@@ -82,14 +86,11 @@ public:
     {
         return state_stack_.back().callee_;
     }
-    auto &GetStateStack()
+    auto *GetStateStack()
     {
-        return state_stack_;
+        return &state_stack_;
     }
-    auto &GetConstantPool()
-    {
-        return constant_pool_;
-    }
+
 private:
     struct InterpreterState {
     public:
@@ -97,23 +98,19 @@ private:
         {
             caller_pc_ = caller_pc;
             callee_ = callee_obj;
-            regs_.resize(16);
         }
     public:
         Register acc_ {};
-        ArenaVector<Register> regs_;
+        Register regs_[16U];
         size_t caller_pc_ {};
         // This is used for implicit this inside functions:
         coretypes::Function *callee_ = nullptr;
     };
 
 private:
-    Allocator allocator_ {};
     size_t pc_ {};
-    ArenaVector<InterpreterState> state_stack_;
-    BytecodeInstruction *instructions_buffer_{};
+    StackVector<InterpreterState> state_stack_;
     BytecodeInstruction *program_ {};
-    ConstantPool constant_pool_{};
 };
 
 }  // namespace k3s 

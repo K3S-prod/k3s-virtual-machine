@@ -13,6 +13,16 @@
     __builtin_unreachable();                                            \
 }
 
+#ifndef NDEBUG
+#define LOG_DEBUG(component, msg) \
+{                                                                \
+    std::cerr << "[" << #component << "] " << msg << std::endl;  \
+}
+#else
+#define LOG_DEBUG(component, msg)
+#endif  // NDEBUG
+
+
 #define BIT_CAST(type, var) \
 
 template <typename T1, typename T2>

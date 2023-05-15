@@ -13,8 +13,8 @@ ninja
 ```shell
 cd build
 ./bin/asm ../benchmarks/fibbonaci.k3s fibbonaci.k3sm
-./bin/interpreter fibbonaci.k3sm 
+./bin/k3s fibbonaci.k3sm 
 
 ./bin/asm ../benchmarks/mean.k3s mean.k3sm
-./bin/interpreter mean.k3sm 
+./bin/k3s mean.k3sm 
 ```

@@ -2,6 +2,7 @@
 #define INTERPRETER_REGISTER
 
 #include <cstdint>
+#include "allocator/object_header.h"
 #include "common/macro.h"
 
 namespace k3s {
@@ -17,8 +18,16 @@ class Register {
 public:
 #include "interpreter/generated/reg_types.inl"
     Register() = default;
+    Register(coretypes::Function *func)
+    {
+        Set(func);
+    }
     Register(Type type, uint64_t value): type_(type), value_(value) {}
 
+    bool IsPrimitive() const
+    {
+        return (GetType() == Type::NUM) || (GetType() == Type::ANY);
+    }
     Type GetType() const
     {
         return type_;
@@ -28,12 +37,16 @@ public:
     {
         return value_;
     }
-
+    
     void Set(Type type, uint64_t val)
     {
         ASSERT(type != Type::NUM && "Num should be set via SetNum");
         type_ = type;
         value_ = val;
+    }
+    void Reset() {
+        type_ = Type::ANY;
+        value_ = 0;
     }
     void Set(double val) {
         type_ = Type::NUM;
@@ -61,44 +74,21 @@ public:
         value_ = reg.value_;
     }
 
-    void DumpAcc(size_t recursion_level = 0)
-    {
-        for (size_t i = 0; i < recursion_level; i++) {
-            std::cout << "-";
-        }
-        std::cout << "Acc : { type_: " << static_cast<int>(type_) << ", ";
-        switch (type_) {
-        case Type::NUM:
-            std::cout << "val_: " << bit_cast<double>(value_) << "}" << std::endl;
-            break; 
-        case Type::STR:
-            // TODO: implement this properly in .cpp file
-            std::cout << "val_: " << reinterpret_cast<const char *>(value_ + 8) << "}" << std::endl;
-            break;          
-        default:
-            std::cout << "val_: " << value_ << "}" << std::endl;
-            break;
-        }
-    }
-
-    void Dump(size_t reg_id, size_t recursion_level = 0)
-    {
-        for (size_t i = 0; i < recursion_level; i++) {
-            std::cout << "-";
-        }
-        std::cout << "Reg[" << reg_id << "] : { type_: " << TypeToStr() << ", ";
-        switch (type_) {
-        case Type::NUM:
-            std::cout << "val_: " << bit_cast<double>(value_) << "}" << std::endl;
-            break;        
-        default:
-            std::cout << "val_: " << value_ << "}" << std::endl;
-            break;
-        }
-    }
+    void Dump(size_t recursion_level = 0);
 
     double GetAsNum() const {
         return bit_cast<double>(value_);
+    }
+    
+    auto *GetAsObjectHeader() const
+    {
+        ASSERT(!IsPrimitive());
+        return reinterpret_cast<ObjectHeader *>(value_);
+    }
+    auto *GetObjectHeaderPtr()
+    {
+        ASSERT(!IsPrimitive());
+        return reinterpret_cast<ObjectHeader **>(&value_);
     }
 
     coretypes::Function *GetAsFunction() const {
@@ -128,8 +118,8 @@ public:
     }
 
 private:
-    Type type_ {};
-    uint64_t value_ {};
+    Type type_ {Type::ANY};
+    uint64_t value_ {0};
 };
 
 }
