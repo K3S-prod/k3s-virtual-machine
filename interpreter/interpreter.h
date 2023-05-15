@@ -3,13 +3,8 @@
 
 #include "bytecode_instruction.h"
 #include "register.h"
-#include "allocator/allocator.h"
+#include "allocator/containers.h"
 #include "classfile/class_file.h"
-#include <vector>
-#include <array>
-
-template <typename T>
-using Vector = std::vector<T>;
 
 namespace k3s {
 
@@ -18,7 +13,7 @@ public:
     // Returns after execution of Opcode::RET with empty call stack
     int Invoke();
 
-    int LoadClassFile(FILE *fileptr);
+    int LoadClassFile(const char *fn);
 
     void SetProgram(BytecodeInstruction *program) {
         program_ = program;
@@ -102,20 +97,21 @@ private:
         {
             caller_pc_ = caller_pc;
             callee_ = callee_obj;
+            regs_.resize(16);
         }
     public:
         Register acc_ {};
-        Register regs_[256] {};
+        ArenaVector<Register> regs_;
         size_t caller_pc_ {};
         // This is used for implicit this inside functions:
         coretypes::Function *callee_ = nullptr;
     };
 
 private:
-    Allocator alloc_ {};
+    Allocator allocator_ {};
     size_t pc_ {};
-    Vector<InterpreterState> state_stack_ {};
-    Vector<BytecodeInstruction> instructions_buffer_{};
+    ArenaVector<InterpreterState> state_stack_;
+    BytecodeInstruction *instructions_buffer_{};
     BytecodeInstruction *program_ {};
     ConstantPool constant_pool_{};
 };

@@ -4,7 +4,7 @@
 .num ONE 1
 
 # idx of element from sequence 0, 1, 1, 2, 3, 5, 8, 13, ...
-.num N 9
+.num N 23
 
 .def Fib
 {

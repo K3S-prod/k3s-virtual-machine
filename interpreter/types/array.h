@@ -10,13 +10,16 @@ namespace k3s::coretypes {
 
 class Array {
 public:
-    Array(size_t size) : data_(size) {}
+    using elem_t = Register;
+
+    Array(size_t size) : size_(size) {}
     Register &GetElem(size_t idx) { 
-        return data_.at(idx); 
+        return data_[idx]; 
     }
-    void SetElem(size_t idx, const Register &val) { data_.at(idx) = val; }
+    void SetElem(size_t idx, const Register &val) { data_[idx] = val; }
 private:
-    std::vector<Register> data_;
+    size_t size_;
+    elem_t data_[];
 };
 
 }

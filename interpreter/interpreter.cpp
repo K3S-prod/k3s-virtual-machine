@@ -7,14 +7,10 @@ int main(int argc, char *argv[])
     if (argc != 2) {
         return 1;
     }
-    auto file = std::fopen(argv[1], "r");
-    if (file == nullptr) {
-        return 2;
-    }
 
     k3s::Interpreter interp {};
     
-    if (interp.LoadClassFile(file) != 0) {
+    if (interp.LoadClassFile(argv[1]) != 0) {
         LOG_FATAL(INTERPRETER, "Loading failed");
     }
 
@@ -47,23 +43,22 @@ std::ostream &operator<<(std::ostream &os, const BytecodeInstruction &inst)
     goto *DISPATCH_TABLE[dispatch_idx];                             \
 }
 
-int Interpreter::LoadClassFile(FILE *fileptr) {
-    ClassFileHeader header;
-    int err_code = ClassFile::LoadClassFile(fileptr, &header, 
-                                        &instructions_buffer_, &constant_pool_);
+int Interpreter::LoadClassFile(const char *fn) {
+    ClassFileHeader *header;
+    int err_code = ClassFile::LoadClassFile(fn, &header, 
+                                        &instructions_buffer_, &constant_pool_, &allocator_);
     if (err_code != 0) {
         return err_code;
     }
-    SetPc(header.entry_point);
-    SetProgram(instructions_buffer_.data());
+    SetPc(header->entry_point);
+    SetProgram(instructions_buffer_);
     return 0;
 }
 
 int Interpreter::Invoke()
 {
-    auto &inst_buf = instructions_buffer_;
     InstDecoder decoder;
-    auto *main_ptr = alloc_.AllocFunction(pc_);
+    auto *main_ptr = allocator_.RuntimeRegion().NewFunction(pc_);
     GetStateStack().emplace_back(-1, main_ptr);
 
 #include "generated/dispatch_table.inl"
@@ -77,7 +72,7 @@ int Interpreter::Invoke()
         switch (elem.type_) {
             case Type::FUNC: {
                 size_t bc_offs = GetConstantPool().GetFunctionBytecodeOffset(decoder.GetImm());
-                auto *ptr = alloc_.AllocFunction(bc_offs);
+                auto *ptr = allocator_.RuntimeRegion().NewFunction(bc_offs);
                 GetAcc().Set(Type::FUNC, bit_cast<uint64_t>(ptr));
                 break;
             }
@@ -263,7 +258,7 @@ int Interpreter::Invoke()
     NEWARR_rNUM: {
         size_t reg_id = decoder.GetFirstReg();
         size_t arr_sz = static_cast<size_t>(GetReg(reg_id).GetAsNum());
-        GetAcc().SetArray(alloc_.AllocArray(arr_sz));
+        GetAcc().SetArray(allocator_.RuntimeRegion().NewArray(arr_sz));
         ADVANCE_FETCH_AND_DISPATCH();
     }
     SETELEM_aARR_rNUM_rANY: {
