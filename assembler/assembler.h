@@ -21,6 +21,12 @@ class AsmEncoder;
 extern AsmEncoder ENCODER;
 
 class AsmEncoder {
+    struct ObjectDescr
+    {
+        Vector<std::string> data_fields_;
+        Vector<std::string> methods_;
+        Vector<size_t> methods_bc_offsets_;
+    };
 public:
     static int Process(FILE *file);
 
@@ -55,15 +61,36 @@ public:
 
     static void DeclareAndDefineFunction(char *c_str)
     {
-        std::string key(c_str);
-        ASSERT(ENCODER.declared_objects_.find(key) == ENCODER.declared_objects_.end());
-        uint8_t idx = ENCODER.declared_objects_.size();
-        ENCODER.declared_objects_[key] = idx;
+        DeclareId(c_str);
         auto bc_offset = ENCODER.instructions_buffer_.size();
-        ENCODER.constant_pool_.SetFunction(idx, bc_offset);
+        ENCODER.constant_pool_.SetFunction(ENCODER.temp_idx_, bc_offset);
+    }
+    
+    static void DeclareAndDefineMethod(char *c_str)
+    {
+        auto bc_offset = ENCODER.instructions_buffer_.size();
+        ENCODER.objects_storage_.back().methods_bc_offsets_.push_back(bc_offset);
+        ENCODER.objects_storage_.back().methods_.emplace_back(c_str);
+    }
+    
+    static void DeclareAndDefineAnyDataMember(char *c_str)
+    {
+        ENCODER.objects_storage_.back().data_fields_.emplace_back(c_str);
     }
 
-    static void DeclareNum(char *c_str)
+    static void DeclareObject(char *c_str)
+    {
+        DeclareId(c_str);
+        ENCODER.constant_pool_.SetObject(ENCODER.temp_idx_, ENCODER.objects_storage_.size());
+        ENCODER.objects_storage_.emplace_back();
+    }
+
+    static void FinalizeObject()
+    {
+        ENCODER.is_class_context_ = false;
+    }
+
+    static void DeclareId(char *c_str)
     {
         std::string key(c_str);
         ASSERT(ENCODER.declared_objects_.find(key) == ENCODER.declared_objects_.end());
@@ -79,6 +106,15 @@ public:
     {
         double num = atof(c_str);
         ENCODER.constant_pool_.SetNum(ENCODER.temp_idx_, num);
+    }
+
+    static void DefineStr(const char *c_str)
+    {
+        ASSERT(c_str[0] == '"');
+        ENCODER.strings_storage_.emplace_back(c_str + 1);
+        ASSERT(ENCODER.strings_storage_.back().back() == '"');
+        ENCODER.strings_storage_.back().pop_back();
+        ENCODER.constant_pool_.SetStr(ENCODER.temp_idx_, ENCODER.strings_storage_.size() - 1);
     }
 
     static uint8_t TryResolveName(const char *c_str)
@@ -147,6 +183,9 @@ public:
         if (ENCODER.unresolved_labels_.size() != 0) {
             LOG_FATAL(ENCODER, "There are " << ENCODER.unresolved_labels_.size() << " unresolved labels!");
         }
+        if (ENCODER.instructions_buffer_.back().GetOpcode() != Opcode::RET) {
+            LOG_FATAL(ENCODER, "Function should end with `RET`");
+        } 
     }
 
     static ConstantPool &GetConstantPool()
@@ -154,14 +193,27 @@ public:
         return ENCODER.constant_pool_;
     }
 
+    const auto &GetStringsStorage()
+    {
+        return strings_storage_;
+    }
+    
+    const auto &GetObjectsStorage()
+    {
+        return objects_storage_;
+    }
+
 private:
     Vector<BytecodeInstruction> instructions_buffer_ {};
     Hash<std::string, uint8_t> declared_objects_ {};
     Hash<std::string, size_t> declared_labels_ {};
     Hash<std::string, Vector<size_t>> unresolved_labels_ {};
+    Vector<std::string> strings_storage_ {};
+    Vector<ObjectDescr> objects_storage_ {};
     ConstantPool constant_pool_ {};
 
     uint8_t temp_idx_ {};
+    bool is_class_context_ {false};
 };
 
 } // namespace k3s

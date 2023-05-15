@@ -37,16 +37,22 @@ public:
         data_[constant_pool_id].val_ = bit_cast<uint64_t>(num);
     }
     
-    size_t GetNum(uint8_t constant_pool_id)
+    void SetStr(uint8_t constant_pool_id, uint64_t buf)
     {
-        ASSERT(data_[constant_pool_id].type_ == Type::NUM);
-        return data_[constant_pool_id].val_;
+        data_[constant_pool_id].type_ = Type::STR;
+        data_[constant_pool_id].val_ = buf;
     }
 
     void SetFunction(uint8_t constant_pool_id, size_t bytecode_ofs)
     {
         data_[constant_pool_id].type_ = Type::FUNC;
         data_[constant_pool_id].val_ = bytecode_ofs;
+    }
+
+    void SetObject(uint8_t constant_pool_id, uint64_t val)
+    {
+        data_[constant_pool_id].type_ = Type::OBJ;
+        data_[constant_pool_id].val_ = val;
     }
 
     size_t GetFunctionBytecodeOffset(uint8_t constant_pool_id)
@@ -59,6 +65,14 @@ public:
     {
         return data_[constant_pool_id];
     }
+    auto *GetMappingForObjAt(uint8_t constant_pool_id)
+    {
+        return &object_mappings_[constant_pool_id];
+    }
+    const auto *GetMappingForObjAt(uint8_t constant_pool_id) const
+    {
+        return &object_mappings_[constant_pool_id];
+    }
 
     const auto &Elements() 
     {
@@ -67,6 +81,7 @@ public:
 
 private:
     std::array<Element, CONSTANT_POOL_SIZE> data_;
+    std::array<ConstUnorderedMap<std::string_view, size_t>, CONSTANT_POOL_SIZE> object_mappings_;
 };
 
 struct ClassFileHeader 
@@ -99,6 +114,17 @@ public:
         double value;
         int8_t id;
     };
+    struct StrRecord {
+        size_t size;
+        int8_t id;
+        alignas(8) char data[];
+    };
+    struct ObjRecord {
+        size_t data_fields_n_;
+        size_t methods_n_;
+        int8_t id;
+        alignas(8) char data[];
+    };
     /// Write classfile to \p fileptr
     void DumpClassFile(FILE *fileptr);
     /// Load classfile from \p fileptr
@@ -112,7 +138,7 @@ private:
     /// Loads code section to \p instructions_buffer_ from \p fileptr
     static BytecodeInstruction *LoadCodeSection(void *fileptr);
     /// Loads constant pool to \p constant_pool from \p fileptr
-    static int LoadConstantPool(void *constpool_file, size_t bytes_count, ConstantPool *constant_pool);
+    static int LoadConstantPool(void *constpool_file, size_t bytes_count, ConstantPool *constant_pool, Allocator *allocator);
     static size_t EstimateEncodingSize(const ConstantPool::Element &element);
     void AllocateBuffer();
     /// Interfaces foe writing classfile parts to file
@@ -120,7 +146,7 @@ private:
     void WriteCodeSection();
     void WriteConstantPool();
     void WriteObj(const ConstantPool::Element &element, int8_t pool_id);
-    void write_buf(char *src, size_t nbytes);
+    void write_buf(const char *src, size_t nbytes);
 };
 
 } // namespace k3s

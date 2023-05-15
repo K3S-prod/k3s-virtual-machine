@@ -7,59 +7,66 @@
 .num VALUE_N 4000000
 .num VALUE_M 1000
 
-.str FIELD_x "x"
-.str FIELD_y "y"
-.str FIELD_a "a"
+.str FIELD_constructor "constructor_"
+.str FIELD_setY "setY_"
+.str FIELD_x "x_"
+.str FIELD_y "y_"
+.str FIELD_a "a_"
 
-.class Bar {
-    .num a
+.obj Bar {
+    .any a_
 
-    .def constructor {
-        getarg0 r0          # r0 = a
-        getthis             # ACC = *this
-        ldstr r1 FIELD_a    # r1 = "a"
-        setfield r0 r1      # (ACC).r1("a") = r0
+    .def constructor_ {
+        getthis r0          # r0 = *this
+        ldai FIELD_a        # r1 = "a"
+        sta r1
+        getarg0 r2          # ACC = a
+        lda r2
+        setelem r0 r1       # r0[r1] = acc
+        ret
     }
 }
 
-class Foo {
-    .num x
-    .obj "Bar" y
+.obj Foo {
+    .any x_
+    .any y_
 
-    .def constructor {
-        getarg0 r0          # r0 = a
-        getthis             # ACC = *this
-        ldstr r2 FIELD_x    # r2 = "x"
-        setfield r0 r2      # (ACC).r2("x") <- r0
+    .def constructor_ {
+        getthis r0          # r0 = *this
+        ldai FIELD_x        # r1 = "x"
+        sta r1
+        getarg0 r2          # acc = a
+        lda r2
+        setelem r0 r1       # r0[r1] = acc
 
-        getthis             # ACC = *this
-        stnull r1           # r1 = null
-        ldstr r2 FIELD_y    # r2 = "y"
-        setfield r1 r2      # (ACC).r2("y") <- r1
+        ldai FIELD_y        # r1 = "y"
+        sta r1
+        stnull r2           # r1 = null
+        lda r2
+        setelem r0 r1      # r0[r1] = r1
+        ret
     }
 
-    pub.def setY {
-        getarg0 r0          # r0 = b (obj "Bar")
-
-        getthis             # ACC = *this
-        ldstr r1 FIELD_y    # r1 = "y"
-        setfield r0 r1      # (ACC).r1("y") <- r0
+    .def setY_ {
+        getthis r0          # ACC = *this
+        ldai FIELD_y        # r1 = "y"
+        sta r1
+        getarg0 r2          # r0 = b (obj "Bar")
+        lda r2
+        setelem r0 r1       # r0[r1] = acc
+        ret
     }
 }
 
 .def foo {
     getarg0 r0      # r0 = N
-    getarg1 r1      # r0 = M
+    getarg1 r1      # r1 = M
 
-    ldai Foo        # ACC = Foo (class)
-    newarr r1       # ACC = alloc(ACC(class), r1(num elements))
+    newarr r1       # ACC = alloc(r1(num elements))
     sta r2          # r2(foo) = ACC
 
-    newobj Foo      # ACC = alloc(Foo(class))
-    stnull r3       # r1 = null
-    movobja r3      # ACC <- r3(null)
-    sta r3          # r3(outer) = ACC
-
+    stnull r3
+    
     ldai ONE        # ACC(i) = 1
     sta r4          # r4(i) = ACC
 
@@ -67,11 +74,13 @@ loop:
     sub r4 r0       # ACC = r4(i) - r0(N)
     bge loop_end    # jump if (ACC >= 0)
 
-    newobj Foo              # ACC = alloc(Foo(class))
+    ldai Foo                # ACC = alloc(Foo(class))
     sta r5                  # r5(o1) = ACC
-    ldai Foo_constructor    # ACC = Foo:constructor
-    setarg0 r5              # ACC(Foo_constructor).args[0] = r5(o1)
-    setarg1 r4              # ACC(Foo_constructor).args[1] = r4(i)
+    ldai FIELD_constructor  # ACC = r5["constructor_"]
+    sta r6
+    getelem r5 r6
+
+    setarg0 r4              # ACC(Foo_constructor).args[1] = r4(i)
     call                    # ACC()
 
     ldai THREE      # ACC = 3
@@ -86,35 +95,38 @@ loop:
     sub2 r6         # ACC = ACC - r6(1)
     sta r6          # r6 = ACC
 
-    lda r2          # ACC = r2
-    setelem r6 r5   # ACC[r6(i % M - 1)] = r5(o1)
+    lda r5          # ACC = r5
+    setelem r2 r6   # r2[r6(i % M - 1)] = acc(o1)
 skip_1:
 
-    newobj Bar              # ACC = alloc(Bar(class))
+    ldai Bar                # ACC = alloc(Bar(class))
     sta r6                  # r6(o2) = ACC
-    ldai Bar_constructor    # ACC = Bar:constructor
-    setarg0 r6              # ACC(Bar_constructor).args[0] = r6(o2)
-    setarg1 r4              # ACC(Bar_constructor).args[1] = r4(i)
-    call                    # ACC()
+    ldai FIELD_constructor  # ACC = Bar:constructor
+    sta r7
+    getelem r6 r7
 
+    setarg0 r4              # ACC(Bar_constructor).args[0] = r4(i)
+    call                    # ACC()
 
     ldai FIVE       # ACC = 5
     sta r7          # r7 = ACC
-    mod r4 r6       # ACC = r4(i) mod r6(5)
+    mod r4 r7       # ACC = r4(i) mod r7(5)
 
     bne skip_2      # jump if (ACC != 0)
 
-    ldai Foo_setY   # ACC = Foo:setY
-    setarg0 r5      # ACC(Foo_setY).args[0] = r5(o1)
-    setarg1 r6      # ACC(Foo_setY).args[1] = r6(o2)
+    ldai FIELD_setY # ACC = Foo:setY
+    sta r7
+    getelem r5 r7
+    setarg0 r6      # ACC(Foo_setY).args[0] = r6(o2)
     call            # ACC()
 skip_2:
 
-    movobj r3 r5    # r3(outer) <- r5(o1)
+    mov r5 r3    # r3(outer) <- r5(o1)
     jump loop
 loop_end:
 
     dump r1
+    ret
 }
 
 .def main {
@@ -128,4 +140,5 @@ loop_end:
     setarg0 r0      # ACC(foo).args[0] = r0(N)
     setarg1 r1      # ACC(foo).args[1] = r1(M)
     call            # ACC()
+    ret
 }

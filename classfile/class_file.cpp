@@ -48,7 +48,7 @@ void ClassFile::WriteCodeSection()
 void ClassFile::WriteConstantPool() 
 {
     size_t pool_size = ENCODER.GetConstantPool().Elements().size();
-    for (int8_t pool_id =0; pool_id < pool_size; ++pool_id) {
+    for (int8_t pool_id = 0; pool_id < pool_size; ++pool_id) {
         WriteObj(ENCODER.GetConstantPool().GetElement(pool_id), pool_id);
     }
 }
@@ -75,6 +75,21 @@ size_t ClassFile::EstimateEncodingSize(const ConstantPool::Element &element)
             break;
         case Register::Type::NUM:
             size += sizeof(NumRecord);
+            break;
+        case Register::Type::STR:
+            size += sizeof(StrRecord);
+            size += ENCODER.GetStringsStorage()[element.val_].size() + 1;
+            break;
+        case Register::Type::OBJ:
+            size += sizeof(ObjRecord);
+            for (const auto &str : ENCODER.GetObjectsStorage()[element.val_].data_fields_) {
+                size += str.size() + 1;
+            }
+            for (const auto &str : ENCODER.GetObjectsStorage()[element.val_].methods_) {
+                size += str.size() + 1;
+                size += sizeof(ENCODER.GetObjectsStorage()[element.val_].methods_bc_offsets_[0]);
+            }
+            ASSERT(ENCODER.GetObjectsStorage()[element.val_].methods_.size() == ENCODER.GetObjectsStorage()[element.val_].methods_bc_offsets_.size());
             break;
         case Register::Type::ANY:
             size = 0;
@@ -107,13 +122,34 @@ void ClassFile::WriteObj(const ConstantPool::Element &element, int8_t pool_id)
             write_buf(reinterpret_cast<char *>(&record), sizeof(record));
             break;
         }
+        case Register::Type::STR: {
+            StrRecord record = { .size = ENCODER.GetStringsStorage()[element.val_].size(), .id = pool_id };
+            write_buf(reinterpret_cast<char *>(&record), sizeof(record));
+            write_buf(ENCODER.GetStringsStorage()[element.val_].c_str(), record.size + 1);
+            break;
+        }
+        case Register::Type::OBJ: {
+            ObjRecord record = { .data_fields_n_ = ENCODER.GetObjectsStorage()[element.val_].data_fields_.size(),
+                                 .methods_n_ = ENCODER.GetObjectsStorage()[element.val_].methods_.size(), .id = pool_id };
+            write_buf(reinterpret_cast<char *>(&record), sizeof(record));
+            for (const auto &str : ENCODER.GetObjectsStorage()[element.val_].data_fields_) {
+                write_buf(str.c_str(), str.size() + 1);
+            }
+            for (const auto &str : ENCODER.GetObjectsStorage()[element.val_].methods_) {
+                write_buf(str.c_str(), str.size() + 1);
+            }
+            for (const auto bc_offs : ENCODER.GetObjectsStorage()[element.val_].methods_bc_offsets_) {
+                write_buf(reinterpret_cast<const char *>(&bc_offs), sizeof(bc_offs));
+            }
+            break;
+        }
         default:
             // ASSERT(0 && "Unreachable: encoding of unsupported object type");
             break;
     }
 }
 
-void ClassFile::write_buf(char *src, size_t nbytes) 
+void ClassFile::write_buf(const char *src, size_t nbytes) 
 {
     ASSERT(src && "Invalid pointer");
     char *buf_ptr = file_buffer_.data() + buf_pos_;
@@ -153,7 +189,7 @@ int ClassFile::LoadClassFile(const char *fn, ClassFileHeader **header,
     *instr_buffer = ClassFile::LoadCodeSection(filebuf);
 
 
-    int err_code = ClassFile::LoadConstantPool(filebuf + sizeof(ClassFileHeader) + code_size, file_size -  sizeof(ClassFileHeader) - code_size,  const_pool);
+    int err_code = ClassFile::LoadConstantPool(filebuf + sizeof(ClassFileHeader) + code_size, file_size -  sizeof(ClassFileHeader) - code_size,  const_pool, allocator);
 
     return err_code;
 }
@@ -168,7 +204,7 @@ BytecodeInstruction *ClassFile::LoadCodeSection(void *filebuf)
     return reinterpret_cast<BytecodeInstruction *>(filebuf + sizeof(ClassFileHeader));
 }
 
-int ClassFile::LoadConstantPool(void *constpool_file, size_t bytes_count, ConstantPool *constant_pool)
+int ClassFile::LoadConstantPool(void *constpool_file, size_t bytes_count, ConstantPool *constant_pool, Allocator *allocator)
 {
     for (size_t pos = 0; pos < bytes_count; ) {
         MetaRecord meta;
@@ -176,20 +212,51 @@ int ClassFile::LoadConstantPool(void *constpool_file, size_t bytes_count, Consta
         pos += sizeof(meta);
         switch (meta.type) {
         case Register::Type::FUNC: {
-            FuncRecord record;
-            std::memcpy(&record, constpool_file + pos, sizeof(record));
-            pos += sizeof(record);
-            constant_pool->SetFunction(record.id, record.bc_offset);
+            auto *record = reinterpret_cast<FuncRecord *>(constpool_file + pos);
+            pos += sizeof(*record);
+            constant_pool->SetFunction(record->id, record->bc_offset);
             break;
-        }
-        case Register::Type::NUM: {
-            NumRecord record;
-            std::memcpy(&record, constpool_file + pos, sizeof(record));
-            pos += sizeof(record);
-            constant_pool->SetNum(record.id, record.value);
+        } case Register::Type::NUM: {
+            auto *record = reinterpret_cast<NumRecord *>(constpool_file + pos);
+            pos += sizeof(*record);
+            constant_pool->SetNum(record->id, record->value);
             break;
-        }
-        default:
+        } case Register::Type::STR: {
+            auto *record = reinterpret_cast<StrRecord *>(constpool_file + pos);
+            pos += sizeof(*record) + record->size + 1;
+            ASSERT(record->data[record->size] == '\0');
+            constant_pool->SetStr(record->id, reinterpret_cast<uint64_t>(record->data));
+            break;
+        } case Register::Type::OBJ: {
+            auto *record = reinterpret_cast<ObjRecord *>(constpool_file + pos);
+            auto *mapping = constant_pool->GetMappingForObjAt(record->id);
+            pos += sizeof(*record);
+            for (size_t i = 0; i < record->data_fields_n_; i++) {
+                const char *c_str = reinterpret_cast<const char *>(constpool_file + pos);
+                if (mapping->find(c_str) != mapping->end()) {
+                    LOG_FATAL(INTERPRETER, "Object has overlapping fields names");
+                }
+                (*mapping)[c_str] = i;
+                pos += strlen(c_str);
+                pos++;
+            }
+            for (size_t i = 0; i < record->methods_n_; i++) {
+                const char *c_str = reinterpret_cast<const char *>(constpool_file + pos);
+                if (mapping->find(c_str) != mapping->end()) {
+                    LOG_FATAL(INTERPRETER, "Object has overlapping fields names");
+                }
+                (*mapping)[c_str] = record->data_fields_n_ + i;
+                pos += strlen(c_str);
+                pos++;
+            }
+            size_t *methods_bc_offs = allocator->ConstRegion().Alloc<size_t>(record->methods_n_ + 1);
+            methods_bc_offs[0] = record->methods_n_;
+            memcpy(methods_bc_offs + 1, constpool_file + pos, record->methods_n_);
+            pos += record->methods_n_ * sizeof(size_t);
+            
+            constant_pool->SetObject(record->id, reinterpret_cast<uint64_t>(methods_bc_offs));
+            break;
+        } default:
             std::cerr << "Unreachable executed: trying to load unsupported type\n";
             std::exit(EXIT_FAILURE);
             break;

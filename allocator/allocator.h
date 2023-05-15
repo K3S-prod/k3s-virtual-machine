@@ -2,7 +2,6 @@
 #define ALLOCATOR_ALLOCATOR_H
 
 #include "interpreter/register.h"
-#include "interpreter/types/coretypes.h"
 #include <sys/mman.h>
 #include <vector>
 #include <cstdint>
@@ -10,12 +9,11 @@
 
 namespace k3s {
 
-
 class Allocator
 {
     static constexpr uintptr_t ALLOC_START_ADDR = 0xE000000;
     static constexpr uintptr_t ALLOC_SIZE = 1024 * 1024 * 32;
-
+public:
     template <uintptr_t START_PTR, size_t SIZE>
     class Region
     {
@@ -25,6 +23,11 @@ class Allocator
         public:
             using value_type = T;
 
+            AllocatorRequirements() = default;
+
+            template <typename U>
+            AllocatorRequirements(const AllocatorRequirements<U> &a2) {}
+
             [[nodiscard]] T* allocate(size_t n)
             {
                 return Region::Alloc<T>(n);
@@ -33,8 +36,6 @@ class Allocator
             {
                 return;
             }
-        private:
-            Region *region_{};
         };
 
     public:
@@ -64,18 +65,6 @@ class Allocator
             return reinterpret_cast<void *>(START_PTR);
         }
 
-        coretypes::Function *NewFunction(size_t bc_offs)
-        {
-            void *ptr = AllocBytes(sizeof(coretypes::Function));
-            return new (ptr) coretypes::Function(bc_offs);
-        }
-
-        coretypes::Array *NewArray(size_t size)
-        {
-            void *ptr = AllocBytes(sizeof(coretypes::Array) + sizeof(coretypes::Array::elem_t) * size);
-            return new (ptr) coretypes::Array(size);
-        }
-
         static void *AllocBytes(size_t n_bytes)
         {
             size_t new_cursor = *GetCursor() + n_bytes;
@@ -89,6 +78,9 @@ class Allocator
     };
 
 public:
+    using ConstRegionT = Region<ALLOC_START_ADDR, ALLOC_SIZE / 2>;
+    using RuntimeRegionT = Region<ALLOC_START_ADDR + ALLOC_SIZE / 2, ALLOC_SIZE / 2>;
+
     Allocator()
     {
         void *buf = mmap(reinterpret_cast<void *>(ALLOC_START_ADDR), ALLOC_SIZE, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
@@ -112,8 +104,8 @@ public:
     }
 
 private:
-    Region<ALLOC_START_ADDR, ALLOC_SIZE / 2> const_region_;
-    Region<ALLOC_START_ADDR + ALLOC_SIZE / 2, ALLOC_SIZE / 2> runtime_region_;
+    ConstRegionT const_region_;
+    RuntimeRegionT runtime_region_;
 };
 
 }  // namespace k3s

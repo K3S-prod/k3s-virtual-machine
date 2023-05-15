@@ -34,3 +34,4 @@
 # Workspace directories
 .vscode
 build
+artifacts

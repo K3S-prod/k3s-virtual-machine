@@ -43,195 +43,238 @@ opcodes:
     opcode_overload_limit:
         4
     groups:
-        Controlflow:
-            - signature: opc_i8
-              opc:
-                - jump
-              overloads:
-                - in: []
-                  out: []
-                  semantics: pc <- pc + i8
-            - signature: opc_i8
-              opc:
-                - ble
-              overloads:
-                - in: ["a:NUM"]
-                  out: []
-                  semantics: if (acc <= 0) { pc <- pc + i8 }
-            - signature: opc_i8
-              opc:
-                - blt
-              overloads:
-                - in: ["a:NUM"]
-                  out: []
-                  semantics: if (acc < 0) { pc <- pc + i8 }
-            - signature: opc
-              opc:
-                - call
-              overloads:
-                - in: ["a:FUNC"]
-                  out: []
-                  semantics: acc.invoke()
-            - signature: opc
-              opc:
-                - ret
-              overloads:
-                - in: []
-                  out: []
-                  semantics: return
+      Controlflow:
+      - signature: opc_i8
+        opc:
+        - jump
+        overloads:
+        - in: []
+          out: []
+          semantics: pc <- pc + i8
+      - signature: opc_i8
+        opc:
+        - ble
+        - blt
+        - bge
+        - bne
+        overloads:
+        - in: ["a:NUM"]
+          out: []
+          semantics: >
+            1. if (acc <= 0) { pc <- pc + i8 }
+            2. if (acc < 0) { pc <- pc + i8 }
+            3. if (acc >= 0) { pc <- pc + i8 }
+            4. if (acc != 0) { pc <- pc + i8 }
 
-        Objects:
-            - signature: opc_i8
-              opc:
-                - ldai
-              overloads:
-                - in: []
-                  out: ["a:ANY"]
-                  semantics: > 
-                       acc <- allocobj(CONSTANT_POOL[imm8])
-        DataFlow:
-            - signature: opc_r8
-              opc:
-                - lda
-              overloads:
-                - in: ["r:ANY"]
-                  out: ["a:ANY"]
-                  semantics: acc <- reg
-            - signature: opc_r8
-              opc:
-                - sta
-              overloads:
-                - in: ["r:ANY"]
-                  out: ["r:ANY"]
-                  semantics: reg <- acc
-            - signature: opc_r4_r4
-              opc:
-                - mov
-              overloads:
-                - in: ["r:ANY", "r:ANY"]
-                  out: ["r:ANY"]
-                  semantics: reg2 <- reg1
+      - signature: opc
+        opc:
+        - call
+        overloads:
+        - in: ["a:FUNC"]
+          out: []
+          semantics: acc.invoke()
+      - signature: opc
+        opc:
+        - ret
+        overloads:
+        - in: []
+          out: []
+          semantics: return
 
-        Arithmetic (two-op):
-            - signature: opc_r4_r4
-              opc:
-                - add
-              overloads:
-                - in: ["r:NUM", "r:NUM"]
-                  out: ["a:NUM"]
-                  semantics: acc <- r0 add r1;
-                - in: ["r:STR", "r:STR"]
-                  out: ["a:STR"]
-                  semantics: a <- concat(r0, r1);
+      Objects:
+      - signature: opc_r8
+        opc:
+        - getthis
+        overloads:
+        - in: []
+          out: ["r:OBJ"]
+          semantics: >
+            r <- *this
+      - signature: opc_r8
+        opc:
+        - stnull
+        overloads:
+        - in: []
+          out: ["r:OBJ"]
+          semantics: >
+            r <- null_ref
 
-            - signature: opc_r4_r4
-              opc:
-                - sub
-                - div
-                - mul
-              overloads:
-                - in: ["r:NUM", "r:NUM"]
-                  out: ["a:NUM"]
-                  semantics: acc <- r0 opc r1;
+      DataFlow:
+      - signature: opc_i8
+        opc:
+        - ldai
+        overloads:
+        - in: []
+          out: ["a:ANY"]
+          semantics: > 
+            acc <- allocobj(CONSTANT_POOL[imm8])
+      - signature: opc_r8
+        opc:
+        - lda
+        overloads:
+        - in: ["r:ANY"]
+          out: ["a:ANY"]
+          semantics: acc <- reg
+      - signature: opc_r8
+        opc:
+        - sta
+        overloads:
+        - in: ["a:ANY"]
+          out: ["r:ANY"]
+          semantics: reg <- acc
+      - signature: opc_r4_r4
+        opc:
+        - mov
+        overloads:
+        - in: ["r:ANY"]
+          out: ["r:ANY"]
+          semantics: reg2 <- reg1
+
+      Arithmetic (two-op):
+      - signature: opc_r4_r4
+        opc:
+          - add
+        overloads:
+          - in: ["r:NUM", "r:NUM"]
+            out: ["a:NUM"]
+            semantics: acc <- r0 add r1;
+          - in: ["r:STR", "r:STR"]
+            out: ["a:STR"]
+            semantics: a <- concat(r0, r1);
+
+      - signature: opc_r4_r4
+        opc:
+        - sub
+        - mul
+        - div
+        - mod
+        overloads:
+        - in: ["r:NUM", "r:NUM"]
+          out: ["a:NUM"]
+          semantics: acc <- r0 opc r1;
                          
-        Arithmetic (single-op):
-            - signature: opc_r8
-              opc:
-                - add2
-              overloads:
-                - in:   ["a:NUM", "r:NUM"]
-                  out:  ["a:NUM"]
-                  semantics: acc <- acc opc r0
-                - in:   ["a:STR", "r:STR"]
-                  out:  ["a:STR"]
-                  semantics: acc <- concat(acc, r0)
-                - in:   ["a:ARR", "r:NUM"]
-                  out:  ["a:ARR"]
-                  semantics: foreach idx { acc[idx] <- acc[idx] opc ri }
-            - signature: opc_r8
-              opc:
-                - sub2
-                - div2
-                - mul2
-              overloads:
-                - in:   ["a:NUM", "r:NUM"]
-                  out:  ["a:NUM"]
-                  semantics: acc <- acc opc r0
-                - in:   ["a:ARR", "r:NUM"]
-                  out:  ["a:ARR"]
-                  semantics: foreach idx { acc[idx] <- acc[idx] opc ri }
+      Arithmetic (single-op):
+      - signature: opc_r8
+        opc:
+        - add2
+        overloads:
+        - in:   ["a:NUM", "r:NUM"]
+          out:  ["a:NUM"]
+          semantics: acc <- acc opc r0
+        - in:   ["a:STR", "r:STR"]
+          out:  ["a:STR"]
+          semantics: acc <- concat(acc, r0)
+        - in:   ["a:ARR", "r:NUM"]
+          out:  ["a:ARR"]
+          semantics: foreach idx { acc[idx] <- acc[idx] opc ri }
+      - signature: opc_r8
+        opc:
+        - sub2
+        - div2
+        - mul2
+        overloads:
+        - in:   ["a:NUM", "r:NUM"]
+          out:  ["a:NUM"]
+          semantics: acc <- acc opc r0
+        - in:   ["a:ARR", "r:NUM"]
+          out:  ["a:ARR"]
+          semantics: foreach idx { acc[idx] <- acc[idx] opc ri }
 
-        Arithmetic (zero-op):
-            - signature: opc
-              opc:
-                - deca
-              overloads:
-                - in:   ["a:NUM"]
-                  out:  ["a:NUM"]
-                  semantics: acc--
+      Arithmetic (zero-op):
+      - signature: opc
+        opc:
+        - deca
+        overloads:
+        - in:   ["a:NUM"]
+          out:  ["a:NUM"]
+          semantics: acc--
 
-        Array-specific:
-            - signature: opc_r8
-              opc:
-                - newarr
-              overloads:
-                - in: ["r:NUM"]
-                  out: ["a:ARR"]
-                  semantics: > 
-                       acc <- allocate_array_with_size(ri)
+      Array-specific:
+      - signature: opc_r8
+        opc:
+        - newarr
+        overloads:
+        - in: ["r:NUM"]
+          out: ["a:ARR"]
+          semantics: > 
+            acc <- allocate_array_with_size(ri)
 
-            - signature: opc_r4_r4
-              opc:
-                - setelem
-              overloads:
-                - in: ["a:ARR", "r:NUM", "r:ANY"]
-                  out: ["a:ARR"]
-                  semantics: >
-                       acc[r1] = r2;
-                       acc <- acc;
+      - signature: opc_r4_r4
+        opc:
+        - setelem
+        overloads:
+        - in: ["a:ANY", "r:ARR", "r:NUM"]
+          out: []
+          semantics: >
+                 acc[r1] = r2;
+                 acc <- acc;
+        - in: ["a:ANY", "r:OBJ", "r:STR"]
+          out: []
+          semantics: >
+                 r1[r2] = acc;
 
-            - signature: opc_r4_r4
-              opc:
-                - getelem
-              overloads:
-                - in: ["a:ARR", "r:NUM", "r:ANY"]
-                  out: ["a:ARR", "r:NUM", "r:ANY"]
-                  semantics: >
-                       r2 <- acc[r1];
-        Dump:
-            - signature: opc_r8
-              opc:
-                - dump
-              overloads:
-                - in: ["r:ANY"]
-                  out: []
-                  semantics: r1.dump()
-            - signature: opc
-              opc:
-                - dumpa
-              overloads:
-                - in: ["a:ANY"]
-                  out: []
-                  semantics: acc.dump()
+      - signature: opc_r4_r4
+        opc:
+        - getelem
+        overloads:
+        - in: ["r:ARR", "r:NUM"]
+          out: ["a:ANY"]
+          semantics: >
+            acc <- r1[r2];
+        - in: ["r:OBJ", "r:STR"]
+          out: ["a:ANY"]
+          semantics: >
+            acc <- r1[r2];
+            if (acc.kind_of? Function) { acc.SetThis(r1) }
 
-        Function-specific:
-            - signature: opc_r8
-              opc:
-                - getarg0
-                - setret0
-              overloads:
-                - in: ["r:ANY"]
-                  out: ["r:ANY"]
-                  semantics: >
-                    1. reg <- (*this).GetArg<0>();
-                    2. (*this).SetRet<0>(reg);
-            - signature: opc_r8
-              opc:
-                - setarg0
-                - getret0
-              overloads:
-                - in: ["a:FUNC", "r:ANY"]
-                  out: []
-                  semantics: > 
-                    1. acc.GetAsFunction().SetArg<0>(reg)
-                    2. reg <- acc.GetAsFunction().GetRet<0>()
+      Dump:
+      - signature: opc_r8
+        opc:
+        - dump
+        overloads:
+        - in: ["r:ANY"]
+          out: []
+          semantics: r1.dump()
+      - signature: opc
+        opc:
+        - dumpa
+        overloads:
+        - in: ["a:ANY"]
+          out: []
+          semantics: acc.dump()
+
+      Function-specific:
+      - signature: opc_r8
+        opc:
+        - getarg0
+        - getarg1
+        overloads:
+        - in: []
+          out: ["r:ANY"]
+          semantics: >
+            reg <- (*this).GetArg<0>();
+      - signature: opc_r8
+        opc:
+        - setret0
+        overloads:
+        - in: ["r:ANY"]
+          out: []
+          semantics: >
+            (*this).SetRet<0>(reg);
+      - signature: opc_r8
+        opc:
+        - setarg0
+        - setarg1
+        overloads:
+        - in: ["a:FUNC", "r:ANY"]
+          out: []
+          semantics: > 
+            1. acc.GetAsFunction().SetArg<i>(reg)
+      - signature: opc_r8
+        opc:
+        - getret0
+        overloads:
+        - in: ["a:FUNC"]
+          out: ["r:ANY"]
+          semantics: > 
+            reg <- acc.GetAsFunction().GetRet<0>()
