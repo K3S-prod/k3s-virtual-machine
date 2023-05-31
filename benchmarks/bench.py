@@ -63,7 +63,8 @@ def func(N, M):
     for i in range(1, N + 1):
         o1 = Foo(i)
         if (i % 3 == 0):
-            foo[i % M - 1] = o1
+            foo[i % M] = o1
+            # foo[i % M - 1] = o1
         o2 = Bar(i)
         if (i % 5 == 0):
             o1.setY(o2)
