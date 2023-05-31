@@ -164,12 +164,12 @@ size_t GetFileSize(int fd)
     lseek(fd, pos, SEEK_SET);
     return size;
 }
-void *ReadFile(int fd, size_t size, Allocator *allocator)
+char *ReadFile(int fd, size_t size, Allocator *allocator)
 {
     auto buf = allocator->ConstRegion().AllocBytes(size);
     auto ret = read(fd, buf, size);
     ASSERT(ret == size);
-    return buf;
+    return reinterpret_cast<char *>(buf);
 }
 
 int ClassFile::LoadClassFile(const char *fn, ClassFileHeader **header,
@@ -194,17 +194,17 @@ int ClassFile::LoadClassFile(const char *fn, ClassFileHeader **header,
     return err_code;
 }
 
-ClassFileHeader *ClassFile::LoadHeader(void *fileptr) 
+ClassFileHeader *ClassFile::LoadHeader(char *fileptr) 
 {
     return reinterpret_cast<ClassFileHeader*>(fileptr);
 }
 
-BytecodeInstruction *ClassFile::LoadCodeSection(void *filebuf) 
+BytecodeInstruction *ClassFile::LoadCodeSection(char *filebuf) 
 {
     return reinterpret_cast<BytecodeInstruction *>(filebuf + sizeof(ClassFileHeader));
 }
 
-int ClassFile::LoadConstantPool(void *constpool_file, size_t bytes_count, ConstantPool *constant_pool, Allocator *allocator)
+int ClassFile::LoadConstantPool(char *constpool_file, size_t bytes_count, ConstantPool *constant_pool, Allocator *allocator)
 {
     for (size_t pos = 0; pos < bytes_count; ) {
         MetaRecord meta;
@@ -251,7 +251,7 @@ int ClassFile::LoadConstantPool(void *constpool_file, size_t bytes_count, Consta
             }
             size_t *methods_bc_offs = allocator->ConstRegion().Alloc<size_t>(record->methods_n_ + 1);
             methods_bc_offs[0] = record->methods_n_;
-            memcpy(methods_bc_offs + 1, constpool_file + pos, record->methods_n_);
+            memcpy(methods_bc_offs + 1, constpool_file + pos, (record->methods_n_) * sizeof(size_t));
             pos += record->methods_n_ * sizeof(size_t);
             
             constant_pool->SetObject(record->id, reinterpret_cast<uint64_t>(methods_bc_offs));

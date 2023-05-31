@@ -1,9 +1,9 @@
 #ifndef ALLOCATOR_ALLOCATOR_H
 #define ALLOCATOR_ALLOCATOR_H
 
-#include "interpreter/register.h"
+#include "allocator/region.h"
+#include "allocator/gc_region.h"
 #include <sys/mman.h>
-#include <vector>
 #include <cstdint>
 #include <new>
 
@@ -12,83 +12,26 @@ namespace k3s {
 class Allocator
 {
     static constexpr uintptr_t ALLOC_START_ADDR = 0xE000000;
-    static constexpr uintptr_t ALLOC_SIZE = 1024 * 1024 * 32;
+    static constexpr size_t ALLOC_SIZE = 1024 * 1024 * 32;
+    static constexpr size_t GC_INTERNALS_SIZE = ALLOC_SIZE / 8;
+    static constexpr size_t STACK_SIZE = ALLOC_SIZE / 8;
 public:
-    template <uintptr_t START_PTR, size_t SIZE>
-    class Region
-    {
-        template <typename T>
-        class AllocatorRequirements
-        {
-        public:
-            using value_type = T;
+    using ConstRegionT = Region<ALLOC_START_ADDR, ALLOC_SIZE / 2 - GC_INTERNALS_SIZE - STACK_SIZE>;
+    using GCInternalsRegionT = Region<ALLOC_START_ADDR + ALLOC_SIZE / 2 - GC_INTERNALS_SIZE - STACK_SIZE, GC_INTERNALS_SIZE>;
+    using StackRegionT = Region<ALLOC_START_ADDR + ALLOC_SIZE / 2 - STACK_SIZE, STACK_SIZE>;
+    using RuntimeRegionT = GCRegion<ALLOC_START_ADDR + ALLOC_SIZE / 2, ALLOC_SIZE / 2>;
 
-            AllocatorRequirements() = default;
-
-            template <typename U>
-            AllocatorRequirements(const AllocatorRequirements<U> &a2) {}
-
-            [[nodiscard]] T* allocate(size_t n)
-            {
-                return Region::Alloc<T>(n);
-            }
-            void deallocate(T *ptr, size_t n)
-            {
-                return;
-            }
-        };
-
-    public:
-        void Init()
-        {
-            *GetCursor() = sizeof(*GetCursor()); 
-        }
-
-        template <typename T>
-        auto Adapter()
-        {
-            return AllocatorRequirements<T>();
-        }
-        template <typename T>
-        static T *Alloc(size_t n_elems)
-        {
-            return reinterpret_cast<T *>(AllocBytes(n_elems * sizeof(T)));
-        }
-
-        static auto *GetCursor()
-        {
-            return reinterpret_cast<size_t *>(START_PTR);
-        }
-        
-        static void *GetStartPtr()
-        {
-            return reinterpret_cast<void *>(START_PTR);
-        }
-
-        static void *AllocBytes(size_t n_bytes)
-        {
-            size_t new_cursor = *GetCursor() + n_bytes;
-            if (new_cursor > SIZE) {
-                LOG_FATAL(ALLOCATOR, "OOM");
-            }
-            auto allocated = GetStartPtr() + *GetCursor();
-            *GetCursor() = new_cursor;
-            return allocated;
-        }
-    };
-
-public:
-    using ConstRegionT = Region<ALLOC_START_ADDR, ALLOC_SIZE / 2>;
-    using RuntimeRegionT = Region<ALLOC_START_ADDR + ALLOC_SIZE / 2, ALLOC_SIZE / 2>;
-
-    Allocator()
+    static void Init()
     {
         void *buf = mmap(reinterpret_cast<void *>(ALLOC_START_ADDR), ALLOC_SIZE, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
         ASSERT(buf == reinterpret_cast<void *>(ALLOC_START_ADDR));
-        const_region_.Init();
-        runtime_region_.Init();
+        ConstRegionT::Reset();
+        GCInternalsRegionT::Reset();
+        StackRegionT::Reset();
+        RuntimeRegionT::Reset();
     }
-    ~Allocator()
+
+    static void Destroy()
     {
         munmap(reinterpret_cast<void *>(ALLOC_START_ADDR), ALLOC_SIZE);
     }
@@ -98,14 +41,26 @@ public:
         return const_region_;
     }
 
-    auto &RuntimeRegion()
+    auto &GcInternalsRegion()
     {
-        return runtime_region_;
+        return gc_internals_region_;
+    }
+
+    auto &StackRegion()
+    {
+        return stack_region_;
+    }
+
+    auto &ObjectsRegion()
+    {
+        return objects_region_;
     }
 
 private:
     ConstRegionT const_region_;
-    RuntimeRegionT runtime_region_;
+    GCInternalsRegionT gc_internals_region_;
+    StackRegionT stack_region_;
+    RuntimeRegionT objects_region_;
 };
 
 }  // namespace k3s
