@@ -1,16 +1,10 @@
 #define FETCH_AND_DISPATCH() \
 {                                                                   \
-    auto &inst = Fetch();                                           \
-    size_t dispatch_idx = decoder_.DecodeAndResolve(inst, *this);   \
+    auto &inst = k3s::Runtime::GetInterpreter()->Fetch();                                           \
+    size_t dispatch_idx = k3s::Runtime::GetInterpreter()->Decoder()->DecodeAndResolve(inst, *k3s::Runtime::GetInterpreter());   \
     ASSERT(DISPATCH_TABLE[dispatch_idx] != nullptr);                \
     goto *DISPATCH_TABLE[dispatch_idx];                             \
 }
-
-#ifdef TRACE
-#define DUMP_TRACE(opc) DumpTrace(#opc)
-#else
-#define DUMP_TRACE(opc)
-#endif // TRACE
 
 static constexpr std::array<const void*, <%= ISA.GetDispatchTable().length %>> DISPATCH_TABLE = {
 <% ISA.GetDispatchTable().each do |lbl| %>
@@ -29,11 +23,10 @@ FETCH_AND_DISPATCH();
 <% ISA.GetDispatchTable().each do |lbl| %>
     <% if lbl != "nullptr" %>
     <%= lbl + "__LBL: {" %>
-        <%= lbl + "();" %>
-        <%= "DUMP_TRACE(" + lbl + ");" %>
-        <%= "FETCH_AND_DISPATCH()" %>
+        <%= "k3s::Runtime::GetInterpreter()->" + lbl + "();" %>
+        goto DONE;
     <%= "}" %>
     <% end %>
 <% end %>
-
+DONE:
 #undef FETCH_AND_DISPATCH

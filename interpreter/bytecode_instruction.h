@@ -30,7 +30,7 @@ public:
         *out << "(opcode: " << static_cast<uint64_t>(opcode_) << ")\n";
         return out;
     }
-private:
+public:
     Opcode opcode_ {};
     uint8_t operands_ {0};
 };

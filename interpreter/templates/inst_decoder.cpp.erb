@@ -72,6 +72,8 @@ namespace k3s {
 
             <%- end -%>
         <%- end -%>
+                case Opcode::OPCODE_LAST:
+                    std::abort();
         }
         if (opc_overload_prefix == INVALID_OVERLOAD_IDX) {
             LOG_FATAL(DECODER, "Can't resolve overload for " << inst);
@@ -107,6 +109,8 @@ namespace k3s {
                 }
             <%- end -%>
         <%- end -%>
+            case Opcode::OPCODE_LAST:
+                    std::abort();
         }
         return inst.GetOpcode();
     }

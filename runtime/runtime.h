@@ -3,12 +3,12 @@
 
 #include "allocator/allocator.h"
 #include "allocator/gc.h"
-#include "interpreter/interpreter.h"
 #include "classfile/class_file.h"
 
 namespace k3s {
 
 class Runtime;
+class Interpreter;
 
 extern Runtime *RUNTIME;
 
@@ -28,7 +28,7 @@ public:
 
     static auto *GetInterpreter()
     {
-        return &GetInstance()->interpreter_;
+        return GetInstance()->interpreter_;
     }
 
     static auto *GetAllocator()
@@ -41,25 +41,12 @@ public:
         return &GetInstance()->gc_;
     }
 
-    static int LoadClassFile(const char *fn)
-    {
-        ClassFileHeader *header;
-        BytecodeInstruction *instructions_buffer;
-
-        int err_code = ClassFile::LoadClassFile(fn, &header, 
-                                            &instructions_buffer, GetConstantPool(), GetAllocator());
-        if (err_code != 0) {
-            return err_code;
-        }
-        GetInterpreter()->SetPc(header->entry_point);
-        GetInterpreter()->SetProgram(instructions_buffer);
-        return 0;
-    }
+    static int LoadClassFile(const char *fn);
 
 private:
     Allocator allocator_ {};
     GC gc_{};
-    Interpreter interpreter_ {};
+    Interpreter *interpreter_ {};
     ConstantPool constant_pool_ {};
 };
 

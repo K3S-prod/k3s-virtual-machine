@@ -8,6 +8,7 @@ set(GENERATED_DIR "${INTERPRETER_BINARY_DIR}/generated")
 file(MAKE_DIRECTORY ${GENERATED_DIR})
 
 set(TEMPLATES_NAMES
+    "dispatch_table_single.inl"
     "dispatch_table.inl"
     "inst_decoder.h"
     "inst_decoder.cpp"
@@ -19,7 +20,9 @@ list(TRANSFORM TEMPLATES_NAMES PREPEND "${TEMPLATES_DIR}/" OUTPUT_VARIABLE TEMPL
 list(TRANSFORM TEMPLATES APPEND ".erb")
 list(TRANSFORM TEMPLATES_NAMES PREPEND "${GENERATED_DIR}/" OUTPUT_VARIABLE TEMPLATES_INSTANTIATED)
 
-add_definitions(-DTRACE)
+if (TRACE)
+    add_definitions(-DTRACE)
+endif()
 
 add_custom_command(
     OUTPUT ${TEMPLATES_INSTANTIATED}
@@ -53,3 +56,5 @@ endmacro()
 make_interpreter_lib(interpreter)
 make_interpreter_lib(interpreter_hooks)
 target_compile_definitions(interpreter_hooks PUBLIC K3S_FETCH_HOOK)
+make_interpreter_lib(interpreter_klee)
+target_compile_options(interpreter_hooks PUBLIC ${CMAKE_C_FLAGS} -emit-llvm)

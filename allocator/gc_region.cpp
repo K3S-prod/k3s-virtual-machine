@@ -1,4 +1,5 @@
 #include "runtime/runtime.h"
+#include "interpreter/interpreter.h"
 
 namespace k3s {
 #define REGIONS_POOL_ARGS() template <uintptr_t START_PTR, size_t REGION_SIZE, size_t N_REGIONS, size_t REMAINING_SIZE>
@@ -183,7 +184,7 @@ namespace k3s {
             
             auto newstamp = std::chrono::steady_clock::now();
             auto diff = std::chrono::duration_cast<std::chrono::microseconds>(newstamp - timestamp_).count();
-            std::cout << "Spent in GC = " << diff << "[us]\n";
+            LOG_DEBUG(GC, "Spent in GC = " << diff << "[us]\n");
             timestamp_ = newstamp;
         }
     }

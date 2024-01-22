@@ -170,14 +170,28 @@ void RuntimeImage::UpdateImage(size_t pc) {
 void RuntimeImage::UpdateProgramImage(size_t pc) {
     size_t prog_size = program_.size();
     if (pc >= prog_size) {
-        program_.resize(pc + prog_size / 2);
-        program_image_.resize(pc + prog_size / 2, false);
+        program_.resize(pc + 1 + prog_size * 2);
+        program_image_.resize(pc + 1 +prog_size * 2, false);
     }
     if (!program_image_[pc]) {
         program_[pc] = GetNextInstruction();
         program_image_[pc] = true;
     }
     program_image_[pc] = true;
+}
+
+BytecodeInstruction RuntimeImage::GetNextInstruction()
+{
+    auto frame = FrameToRb();
+    auto img = ImageToRb();
+    rb_funcall(rb_cObject, rb_intern("UpdateBC"), 2, frame, img);
+    VALUE gv_OPC = rb_gv_get("$OPC");
+    VALUE gv_OPERANDS = rb_gv_get("$OPERANDS");
+    auto opc = FIX2UINT(gv_OPC);
+    auto opr = FIX2UINT(gv_OPERANDS);
+    auto new_bc = BytecodeInstruction(opc, opr);
+    LOG_DEBUG(TGEN, "Got bc: " << new_bc);
+    return new_bc;
 }
 
 void RuntimeImage::HandleReadAcc() {

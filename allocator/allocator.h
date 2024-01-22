@@ -23,6 +23,7 @@ public:
 
     static void Init()
     {
+        // void *buf = malloc(ALLOC_SIZE);
         void *buf = mmap(reinterpret_cast<void *>(ALLOC_START_ADDR), ALLOC_SIZE, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
         ASSERT(buf == reinterpret_cast<void *>(ALLOC_START_ADDR));
         ConstRegionT::Reset();

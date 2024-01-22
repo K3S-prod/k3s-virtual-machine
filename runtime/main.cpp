@@ -1,4 +1,5 @@
 #include "runtime/runtime.h"
+#include "interpreter/interpreter.h"
 #include "allocator/allocator.h"
 
 int main(int argc, char *argv[])
