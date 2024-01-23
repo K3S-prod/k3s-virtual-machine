@@ -43,14 +43,26 @@ private:
         return BytecodeInstruction(Opcode::RET, 0);
     }
 
+    void CreateNumInConstantPool(uint8_t constant_pool_id, double value);
+    void CreateStrInConstantPool(uint8_t constant_pool_id, const char *str);
+
+    void CreateRandNumInConstantPool(uint8_t constant_pool_id);
+    void CreateRandStrInConstantPool(uint8_t constant_pool_id);
+
     // TODO: Detect inst src operands and generate them if not defined
     // Set dst operands as defined
     void UpdateImage() {}
 
 private:
+    static constexpr size_t SIZE_MATAINFO_CONST_POOL = 10000U;
+
     std::vector<BytecodeInstruction> program_{};
     std::vector<bool> program_image_{};
     std::array<bool, ConstantPool::CONSTANT_POOL_SIZE> const_pool_image_{};
+    struct {
+        size_t size = 0;
+        std::array<char, SIZE_MATAINFO_CONST_POOL> data;
+    } metainfo_constant_pool_{};
     std::vector<StateImage> state_stack_image_{};
 };
 
