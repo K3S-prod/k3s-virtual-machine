@@ -29,6 +29,10 @@ public:
 
     const auto &Fetch() const
     {
+        // TODO: if constexpr
+        #if K3S_FETCH_HOOK
+        FetchHook(hook_data_);
+        #endif
         return program_[pc_];
     }
 
@@ -111,6 +115,13 @@ private:
     size_t pc_ {};
     StackVector<InterpreterState> state_stack_;
     BytecodeInstruction *program_ {};
+
+#ifdef K3S_FETCH_HOOK
+    void *hook_data_ = nullptr;
+    void FetchHook(void *hook_data) const;
+public:
+    void SetHookData(void *data) { hook_data_ = data; }
+#endif
 };
 
 }  // namespace k3s 
