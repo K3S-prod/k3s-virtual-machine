@@ -11,8 +11,8 @@ namespace k3s {
 
 namespace testgen {
 
-class StateImage {
-    bool acc_image;
+struct StateImage {
+    bool acc_image = false;
     std::array<bool, 16> regs_image;
 };
 
@@ -25,14 +25,14 @@ public:
     }
 
     auto Run() {
+        state_stack_image_.emplace_back();
         Runtime::GetInterpreter()->SetPc(0);
         Runtime::GetInterpreter()->Invoke();
     }
 
     void Hook() {
-        std::cout << "Hook called\n";
-        program_.emplace_back(GetNextInstruction());
-        UpdateImage();
+        auto pc = Runtime::GetInterpreter()->GetPc();
+        UpdateImage(pc);
         // In case of vector reallocation program pointer will dangle.
         Runtime::GetInterpreter()->SetProgram(program_.data());
     }
@@ -49,9 +49,21 @@ private:
     void CreateRandNumInConstantPool(uint8_t constant_pool_id);
     void CreateRandStrInConstantPool(uint8_t constant_pool_id);
 
-    // TODO: Detect inst src operands and generate them if not defined
-    // Set dst operands as defined
-    void UpdateImage() {}
+    void UpdateImage(size_t pc);
+
+    void UpdateProgramImage(size_t pc);
+
+    void HandleReadAcc();
+
+    void HandleReadAcc(Register::Type required_type);
+
+    void HandleReadReg(size_t reg);
+
+    void HandleReadReg(size_t reg, Register::Type required_type);
+
+    void HandleWriteAcc();
+
+    void HandleWriteReg(size_t reg);
 
 private:
     static constexpr size_t SIZE_MATAINFO_CONST_POOL = 10000U;
