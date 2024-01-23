@@ -35,15 +35,21 @@ set(INTERPRETER_SRC
     "${INTERPRETER_BINARY_DIR}/generated/inst_decoder.cpp"
 )
 
-add_library(interpreter
+macro(make_interpreter_lib target)
+    add_library(${target}
     ${INTERPRETER_SRC}
-)
+    )
 
-add_dependencies(interpreter interpreter_gen)
+    add_dependencies(${target} interpreter_gen)
 
-target_compile_options(interpreter PUBLIC -ggdb3)
-target_link_libraries(interpreter
+    target_compile_options(${target} PUBLIC -ggdb3)
+    target_link_libraries(${target}
     classfile
-)
-target_include_directories(interpreter PUBLIC ${INTERPRETER_BINARY_DIR})
-target_include_directories(interpreter PUBLIC ${INTERPRETER_SOURCE_DIR})
+    )
+    target_include_directories(${target} PUBLIC ${INTERPRETER_BINARY_DIR})
+    target_include_directories(${target} PUBLIC ${INTERPRETER_SOURCE_DIR})
+endmacro()
+
+make_interpreter_lib(interpreter)
+make_interpreter_lib(interpreter_hooks)
+target_compile_definitions(interpreter_hooks PUBLIC K3S_FETCH_HOOK)
