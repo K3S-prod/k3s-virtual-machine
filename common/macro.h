@@ -5,6 +5,8 @@
 #include <cstring>
 #include <iostream>
 
+#define UNREACHABLE() __builtin_unreachable();
+
 #define ASSERT(x) assert(x)
 #define LOG_FATAL(component, msg) \
 {                                                                       \
