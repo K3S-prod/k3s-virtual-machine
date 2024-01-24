@@ -30,6 +30,11 @@ public:
         pc_ = pc;
     }
 
+    size_t GetPc()
+    {
+        return pc_;
+    }
+
     const auto &Fetch() const
     {
         // TODO: if constexpr
