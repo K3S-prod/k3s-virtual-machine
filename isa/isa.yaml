@@ -22,9 +22,6 @@ reg_types:
       desc:     Type to represent functions as objects.
                 Registers of such type can be "invoked".
     
-    - typename: NIL
-      desc:     Empty/undefined value.
-    
     - typename: ANY
       desc:     Unspecified type.
 

@@ -42,11 +42,15 @@ add_library(assembler
     ${ASSEMBLER_LIB_SRC}
 )
 
+add_library(encoder
+    "${CMAKE_CURRENT_SOURCE_DIR}/assembler.cpp"
+)
+
 add_executable(asm
     "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp"
 )
 
 target_compile_options(assembler PUBLIC -ggdb3)
-target_link_libraries(assembler fl y)
+target_link_libraries(assembler fl y encoder)
 target_link_libraries(asm assembler)
 target_link_libraries(asm classfile)

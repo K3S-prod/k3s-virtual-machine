@@ -5,8 +5,12 @@
 #include "register.h"
 #include "allocator/containers.h"
 #include "classfile/class_file.h"
+#include "runtime/runtime.h"
+#include "interpreter/generated/inst_decoder.h"
+#include <cmath>
 #include <iomanip>
 #include <fstream>
+#include <cstdlib>
 
 namespace k3s {
 
@@ -15,15 +19,15 @@ public:
     Interpreter()
     {
         state_stack_.reserve(Allocator::StackRegionT::MAX_ALLOC_SIZE / sizeof(InterpreterState));
+        ASSERT(state_stack_.capacity() == Allocator::StackRegionT::MAX_ALLOC_SIZE / sizeof(InterpreterState));
     }
-
-    // Returns after execution of Opcode::RET with empty call stack
-    int Invoke();
 
     void SetProgram(BytecodeInstruction *program)
     {
         program_ = program;
     }
+
+    [[noreturn]] void Invoke();
 
     void SetPc(size_t pc)
     {
@@ -38,9 +42,9 @@ public:
     const auto &Fetch() const
     {
         // TODO: if constexpr
-        #if K3S_FETCH_HOOK
+    #if K3S_FETCH_HOOK
         FetchHook(hook_data_);
-        #endif
+    #endif
         return program_[pc_];
     }
 
@@ -105,20 +109,25 @@ public:
 
     void DumpTrace(const char* cmd_name)
     {
-        auto state = state_stack_.back();
-        trace_file_ << cmd_name << std::endl;
-        trace_file_ << "pc: " << pc_ << std::endl; 
-        for (int i = 0; i < InterpreterState::REGS_NUM / 4; ++i) {
-            trace_file_ << std::left << "r" << i << ": " <<  std::setw(20) << state.regs_[i].GetValue()
-                        << "r" << i + 4 << ": " << std::setw(20) << state.regs_[i+4].GetValue()
-                        << "r" << i + 8 << ": " << std::setw(20) << state.regs_[i+8].GetValue()
-                        << "r" << i + 12 << ": " << std::setw(20) << state.regs_[i+12].GetValue() << std::endl;
+#ifdef TRACE
+        constexpr size_t FS_LIMIT = 10'485'760U;
+        if (trace_file_ && trace_file_.tellp() < FS_LIMIT) {
+            auto state = state_stack_.back();
+            trace_file_ << cmd_name << ',';
+            trace_file_ << pc_ << ','; 
+            trace_file_ << state.acc_.GetValue();
+            for (int i = 0; i < InterpreterState::REGS_NUM; ++i) {
+                trace_file_ << state.regs_[i].GetValue() << ',';
+            }
+            trace_file_ << "\n";
         }
-        trace_file_ << "\n";
-
+#endif
+    }
+    auto *Decoder()
+    {
+        return &decoder_;
     }
 
-private:
     struct InterpreterState {
         static constexpr size_t REGS_NUM = 16U;
 
@@ -127,6 +136,7 @@ private:
             caller_pc_ = caller_pc;
             callee_ = callee_obj;
         }
+private:
     public:
         Register acc_ {};
         Register regs_[REGS_NUM];
@@ -134,12 +144,17 @@ private:
         // This is used for implicit this inside functions:
         coretypes::Function *callee_ = nullptr;
     };
+public:
+
+#include "handlers.inl"
 
 private:
     size_t pc_ {};
     StackVector<InterpreterState> state_stack_;
     BytecodeInstruction *program_ {};
+    InstDecoder decoder_;
     std::ofstream trace_file_;
+
 #ifdef K3S_FETCH_HOOK
     void *hook_data_ = nullptr;
     void FetchHook(void *hook_data) const;

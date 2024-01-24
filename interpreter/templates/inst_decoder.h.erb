@@ -19,7 +19,7 @@ class Interpreter;
  *
  * In fact, this should be generated based on isa for all possible signatures.
  */
-class InstDecoder {
+struct InstDecoder {
 public:
     static constexpr uint8_t FIRST_NEAR_REG_MASK = 15U;  
     static constexpr uint8_t SECOND_NEAR_REG_MASK = 255U - 15U;
@@ -44,6 +44,13 @@ public:
     }
 
     size_t DecodeAndResolve(const BytecodeInstruction &inst, const Interpreter &interp);
+
+    auto REG(size_t op_idx) {
+        return register_operands_idx_[op_idx];
+    }
+    auto IMM() {
+        return immediate_operand_;
+    }
 
     Opcode Decode(const BytecodeInstruction &inst);
 private:

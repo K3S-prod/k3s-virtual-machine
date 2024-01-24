@@ -28,7 +28,7 @@ class ISA
     def self.reg_types
         @reg_types
     end
-    def self.GetDispatchTable
+    def self.GetDispatchTable()
         disaptch_table = []
         temp_label_str = ""
         opcode_groups.each  do |key, subgroups| 
@@ -37,7 +37,7 @@ class ISA
             subgroup["opc"].each do |opcode|
                 subgroup["overloads"].each do |overload|
                     temp_label_str = GetOverloadLabel(opcode, overload)
-                    disaptch_table.append("&&" + temp_label_str)
+                    disaptch_table.append(temp_label_str)
                 end
                 # fill empty overloads with nullptr:
 

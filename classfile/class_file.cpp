@@ -144,8 +144,7 @@ void ClassFile::WriteObj(const ConstantPool::Element &element, int8_t pool_id)
             break;
         }
         default:
-            // ASSERT(0 && "Unreachable: encoding of unsupported object type");
-            break;
+            LOG_FATAL(CLASSFILE, "Unreachable: encoding of unsupported object type");
     }
 }
 
@@ -257,9 +256,7 @@ int ClassFile::LoadConstantPool(char *constpool_file, size_t bytes_count, Consta
             constant_pool->SetObject(record->id, reinterpret_cast<uint64_t>(methods_bc_offs));
             break;
         } default:
-            std::cerr << "Unreachable executed: trying to load unsupported type\n";
-            std::exit(EXIT_FAILURE);
-            break;
+            LOG_FATAL(CLASSFILE, "Unreachable executed: trying to load unsupported type");
         }
     }
     return 0;

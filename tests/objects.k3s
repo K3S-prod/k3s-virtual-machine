@@ -4,7 +4,7 @@
 .num THREE  3
 .num FIVE   5
 
-.num VALUE_N 4000000
+.num VALUE_N 400000
 .num VALUE_M 1000
 
 .str FIELD_constructor "constructor_"
